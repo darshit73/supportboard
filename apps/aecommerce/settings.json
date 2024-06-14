@@ -1,0 +1,78 @@
+[
+  {
+    "type": "text",
+    "id": "aecommerce-currency-symbol",
+    "title": "Currency symbol",
+    "content": "Set the currency symbol used by your system."
+  },
+  {
+    "type": "text",
+    "id": "aecommerce-panel-title",
+    "title": "Panel title",
+    "content": "Set the title of the conversations panel."
+  },
+  {
+    "type": "multi-input",
+    "id": "aecommerce-db",
+    "title": "Database details",
+    "content": "Enter the database details of the Active eCommerce CMS database.",
+    "value": [
+      {
+        "type": "text",
+        "id": "aecommerce-db-name",
+        "title": "Database name"
+      },
+      {
+        "type": "text",
+        "id": "aecommerce-db-user",
+        "title": "Database user"
+      },
+      {
+        "type": "password",
+        "id": "aecommerce-db-password",
+        "title": "Database password"
+      },
+      {
+        "type": "text",
+        "id": "aecommerce-db-host",
+        "title": "Database host"
+      }
+    ]
+  },
+  {
+    "type": "text",
+    "id": "aecommerce-url",
+    "title": "Active eCommerce URL",
+    "content": "Active eCommerce CMS URL. Ex. https://shop.com/"
+  },
+  {
+    "type": "password",
+    "id": "aecommerce-key",
+    "title": "Secret key",
+    "content": "Get it from the APP_KEY value of the file .env located in the root directory of Active eCommerce."
+  },
+  {
+    "type": "button",
+    "id": "aecommerce-sync",
+    "title": "Import customers",
+    "content": "Import customers into Support Board. Only new customers will be imported.",
+    "button-text": "Start importing",
+    "button-url": "#"
+  },
+  {
+    "type": "button",
+    "id": "aecommerce-sync-admins",
+    "title": "Import admins",
+    "content": "Sync admin and staff accounts with Support Board. Staff users will be registered as agents, while admins as admins. Only new users will be imported.",
+    "button-text": "Start importing",
+    "button-url": "#"
+  },
+  {
+    "type": "button",
+    "id": "aecommerce-sync-sellers",
+    "title": "Import vendors",
+    "content": "Import vendors into Support Board as agents. Only new vendors will be imported.",
+    "button-text": "Start importing",
+    "button-url": "#"
+  }
+]

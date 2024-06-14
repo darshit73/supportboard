@@ -1,0 +1,34 @@
+[
+  {
+    "type": "multi-input",
+    "id": "line",
+    "title": "Synchronization",
+    "content": "Enter the LINE details to start using it. Localhost cannot receive messages.",
+    "help": "https://board.support/docs/#line",
+    "value": [
+      {
+        "type": "password",
+        "id": "line-token",
+        "title": "Access token"
+      },
+      {
+        "type": "password",
+        "id": "line-channel-secret",
+        "title": "Channel secret"
+      },
+      {
+        "type": "button",
+        "id": "line-webhook",
+        "title": "Webhook URL",
+        "button-text": "Webhook URL",
+        "button-url": "#"
+      }
+    ]
+  },
+  {
+    "type": "number",
+    "id": "line-department",
+    "title": "Department ID",
+    "content": "Assign a department to all conversations started from LINE. Enter the department ID."
+  }
+]

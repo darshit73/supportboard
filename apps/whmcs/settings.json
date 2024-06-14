@@ -1,0 +1,58 @@
+[
+  {
+    "type": "text",
+    "id": "whmcs-currency-symbol",
+    "title": "Currency symbol",
+    "content": "Set the currency symbol used by your system."
+  },
+  {
+    "type": "multi-input",
+    "id": "whmcs-db",
+    "title": "Database details",
+    "content": "Enter the database details of the WHMCS database.",
+    "value": [
+      {
+        "type": "text",
+        "id": "whmcs-db-name",
+        "title": "Database name"
+      },
+      {
+        "type": "text",
+        "id": "whmcs-db-user",
+        "title": "Database user"
+      },
+      {
+        "type": "password",
+        "id": "whmcs-db-password",
+        "title": "Database password"
+      },
+      {
+        "type": "text",
+        "id": "whmcs-db-host",
+        "title": "Database host"
+      }
+    ]
+  },
+  {
+    "type": "text",
+    "id": "whmcs-url",
+    "title": "Whmcs admin URL",
+    "content": "Whmcs admin URL. Ex. https://example.com/whmcs/admin/"
+  },
+  {
+    "type": "button",
+    "id": "whmcs-sync",
+    "title": "Import users",
+    "content": "Sync all users with Support Board. Only new users will be imported.",
+    "button-text": "Start importing",
+    "button-url": "#"
+  },
+  {
+    "type": "button",
+    "id": "whmcs-articles-sync",
+    "title": "Import articles",
+    "content": "Sync knowledge base articles with Support Board. Only new articles will be imported.",
+    "button-text": "Start importing",
+    "button-url": "#"
+  }
+]

@@ -1,0 +1,239 @@
+[
+  {
+    "type": "multi-input",
+    "id": "whatsapp-cloud",
+    "title": "Cloud API settings",
+    "content": "Enter the details of your WhatsApp Cloud API account.",
+    "help": "https://board.support/docs/#whatsapp",
+    "value": [
+      {
+        "type": "password",
+        "id": "whatsapp-cloud-key",
+        "title": "Secret key"
+      },
+      {
+        "type": "password",
+        "id": "whatsapp-cloud-token",
+        "title": "Token"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-cloud-phone-id",
+        "title": "Phone number ID"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-cloud-account-id",
+        "title": "Business Account ID"
+      },
+      {
+        "type": "button",
+        "id": "whatsapp-twilio-btn",
+        "title": "Configuration URL",
+        "button-text": "Get configuration URL",
+        "button-url": "#"
+      }
+    ]
+  },
+  {
+    "type": "repeater",
+    "id": "whatsapp-cloud-numbers",
+    "title": "Cloud API numbers",
+    "content": "Add additional WhatsApp phone numbers.",
+    "items": [
+      {
+        "type": "text",
+        "id": "whatsapp-cloud-numbers-phone-id",
+        "name": "Phone number ID"
+      },
+      {
+        "type": "password",
+        "id": "whatsapp-cloud-numbers-token",
+        "name": "Token"
+      },
+      {
+        "type": "number",
+        "id": "whatsapp-cloud-numbers-department",
+        "name": "Department ID"
+      }
+    ]
+  },
+  {
+    "type": "multi-input",
+    "id": "whatsapp-twilio",
+    "title": "Twilio settings",
+    "content": "Enter your Twilio account settings information.",
+    "help": "https://board.support/docs/#whatsapp",
+    "value": [
+      {
+        "type": "text",
+        "id": "whatsapp-twilio-user",
+        "title": "Account SID"
+      },
+      {
+        "type": "password",
+        "id": "whatsapp-twilio-token",
+        "title": "Token"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-twilio-sender",
+        "title": "Sender number"
+      },
+      {
+        "type": "button",
+        "id": "whatsapp-twilio-btn",
+        "title": "Configuration URL",
+        "button-text": "Get configuration URL",
+        "button-url": "#"
+      }
+    ]
+  },
+  {
+    "type": "multi-input",
+    "id": "whatsapp-360",
+    "title": "360dialog settings",
+    "content": "Enter your 360dialog account settings information.",
+    "help": "https://board.support/docs/#whatsapp",
+    "value": [
+      {
+        "type": "password",
+        "id": "whatsapp-360-key",
+        "title": "API key"
+      },
+      {
+        "type": "button",
+        "id": "whatsapp-360-button",
+        "title": "Synchronize",
+        "button-text": "Synchronize now",
+        "button-url": "#"
+      }
+    ]
+  },
+  {
+    "type": "multi-input",
+    "id": "whatsapp-sms",
+    "title": "Text message fallback",
+    "content": "Sends a text message if sending of the WhatsApp message fails. You can use text and the following merge fields: {conversation_url_parameter}, {message}, {recipient_name}, {recipient_email}.",
+    "help": "https://board.support/docs/#whatsapp-templates",
+    "value": [
+      {
+        "type": "checkbox",
+        "id": "whatsapp-sms-active",
+        "title": "Active"
+      },
+      {
+        "type": "textarea",
+        "id": "whatsapp-sms-template",
+        "title": "Message template"
+      }
+    ]
+  },
+  {
+    "type": "multi-input",
+    "id": "whatsapp-template-cloud",
+    "title": "Cloud API template",
+    "content": "Sends a WhatsApp Template notification if sending of the WhatsApp message fails. You can use text and the following merge fields: {conversation_url_parameter}, {recipient_name}, {recipient_email}.",
+    "help": "https://board.support/docs/#whatsapp-templates",
+    "value": [
+      {
+        "type": "text",
+        "id": "whatsapp-template-cloud-name",
+        "title": "Template name"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-template-cloud-languages",
+        "title": "Template languages"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-template-cloud-parameters-header",
+        "title": "Header parameters"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-template-cloud-parameters-body",
+        "title": "Body parameters"
+      }
+    ]
+  },
+  {
+    "type": "textarea",
+    "id": "whatsapp-template",
+    "title": "Twilio template",
+    "content": "Sends a WhatsApp Template notification if sending of the WhatsApp message fails. You can use text and the following merge fields: {conversation_url_parameter}, {recipient_name}, {recipient_email}.",
+    "help": "https://board.support/docs/#whatsapp-templates"
+  },
+  {
+    "type": "multi-input",
+    "id": "whatsapp-template-360",
+    "title": "360dialog template",
+    "content": "Sends a WhatsApp Template notification if sending of the WhatsApp message fails. You can use text and the following merge fields: {conversation_url_parameter}, {recipient_name}, {recipient_email}.",
+    "help": "https://board.support/docs/#whatsapp-templates",
+    "value": [
+      {
+        "type": "text",
+        "id": "whatsapp-template-360-namespace",
+        "title": "Namespace"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-template-360-name",
+        "title": "Template name"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-template-360-language",
+        "title": "Template default language"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-template-360-parameters",
+        "title": "Custom parameters"
+      }
+    ]
+  },
+  {
+    "type": "input-button",
+    "id": "whatsapp-test-template",
+    "title": "Test template",
+    "content": "Send the message template to a WhatsApp number.",
+    "button-text": "Send message"
+  },
+  {
+    "type": "text",
+    "id": "whatsapp-order-webhook",
+    "title": "Order webhook",
+    "content": "Send the WhatsApp order details to the URL provided."
+  },
+  {
+    "type": "multi-input",
+    "id": "whatsapp-catalog",
+    "title": "Catalogue details",
+    "content": "Your WhatsApp catalogue details.",
+    "value": [
+      {
+        "type": "text",
+        "id": "whatsapp-catalog-id",
+        "title": "Catalogue ID"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-catalog-head",
+        "title": "Default header text"
+      },
+      {
+        "type": "text",
+        "id": "whatsapp-catalog-body",
+        "title": "Default body text"
+      }
+    ]
+  },
+  {
+    "type": "number",
+    "id": "whatsapp-department",
+    "title": "Department ID",
+    "content": "Assign a department to all conversations started from WhatsApp. Enter the department ID."
+  }
+]

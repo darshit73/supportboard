@@ -1,0 +1,68 @@
+/*
+* 
+* ==========================================================
+* ADMIN.CSS
+* ==========================================================
+*
+* Perfex CRM only admin style
+*
+*/
+
+body.app.admin, html {
+    background: #1e293b;
+}
+
+.panel_s {
+    box-shadow: none !important;
+}
+
+.panel-body {
+    background: transparent !important;
+    border: none !important;
+}
+
+.panel-body .sb-admin {
+    padding-left: 10px;
+    height: calc(100% - 62px);
+    width: calc(100% - 295px);
+    top: 63px;
+    transition: width .5s;
+}
+
+.panel-body .sb-admin > .sb-header {
+    left: 230px;
+    top: 63px;
+    transition: left .5s;
+}
+
+.panel-body .sb-admin > .sb-header > .sb-admin-nav-right {
+    left: 230px;
+    transition: left .5s;
+}
+
+.sb-lightbox-active .panel-body {
+    z-index: 995;
+}
+
+.hide-sidebar .panel-body .sb-admin > .sb-header > .sb-admin-nav-right, .hide-sidebar .panel-body .sb-admin > .sb-header {
+    left: 0;
+}
+
+.hide-sidebar .panel-body .sb-admin {
+    width: calc(100% - 67px);
+}
+
+.sb-menu [data-value="logout"], #miniTip {
+    display: none !important;
+}
+
+body > #header {
+    position: fixed;
+    left: 0;
+    right: 0;
+}
+
+.navbar-nav > li > a {
+    display: flex;
+    align-items: center;
+}

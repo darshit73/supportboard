@@ -1,0 +1,38 @@
+[
+  {
+    "type": "text",
+    "id": "armember-currency-symbol",
+    "title": "Currency symbol",
+    "content": "Set the currency symbol of the membership prices."
+  },
+  {
+    "type": "select",
+    "id": "armember-visibility",
+    "title": "Visibility",
+    "content": "Initialize and display the chat widget and tickets only for members.",
+    "value": [
+      [ "", "All visitors" ],
+      [ "members", "Members only" ],
+      [ "paying-members", "Members with an active paid plan only" ]
+    ]
+  },
+  {
+    "type": "repeater",
+    "id": "armember-departments",
+    "title": "Departments",
+    "content": "Automatically assigns a department based on the user's active plans. Insert -1 as plan ID for users without any plan.",
+    "help": "https://board.support/docs/#departments",
+    "items": [
+      {
+        "type": "text",
+        "name": "Department ID",
+        "id": "department-id"
+      },
+      {
+        "type": "text",
+        "name": "Plan ID",
+        "id": "plan-id"
+      }
+    ]
+  }
+]

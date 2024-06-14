@@ -1,0 +1,103 @@
+[
+  {
+    "type": "text",
+    "id": "martfury-currency-symbol",
+    "title": "Currency symbol",
+    "content": "Set the currency symbol used by your system."
+  },
+  {
+    "type": "text",
+    "id": "martfury-panel-title",
+    "title": "Panel title",
+    "content": "Set the title of the conversations panel."
+  },
+  {
+    "type": "checkbox",
+    "id": "martfury-private",
+    "title": "Private chat",
+    "content": "Force users to use a different conversation for each store and hide conversations from other stores from store administrators.",
+    "help": "https://board.support/docs/#martfury-private-chat"
+  },
+  {
+    "type": "repeater",
+    "id": "martfury-linking",
+    "title": "Private chat linking",
+    "content": "Connect stores to agents.",
+    "help": "https://board.support/docs/#martfury-private-chat",
+    "items": [
+      {
+        "type": "text",
+        "name": "Store name",
+        "id": "martfury-linking-store"
+      },
+      {
+        "type": "number",
+        "name": "Agent ID",
+        "id": "martfury-linking-agent"
+      }
+    ]
+  },
+  {
+    "type": "multi-input",
+    "id": "martfury-db",
+    "title": "Database details",
+    "content": "Enter the database details of the Martfury database.",
+    "value": [
+      {
+        "type": "text",
+        "id": "martfury-db-name",
+        "title": "Database name"
+      },
+      {
+        "type": "text",
+        "id": "martfury-db-user",
+        "title": "Database user"
+      },
+      {
+        "type": "password",
+        "id": "martfury-db-password",
+        "title": "Database password"
+      },
+      {
+        "type": "text",
+        "id": "martfury-db-host",
+        "title": "Database host"
+      }
+    ]
+  },
+  {
+    "type": "text",
+    "id": "martfury-url",
+    "title": "Martfury URL",
+    "content": "Martfury shop URL, e.g. https://shop.com"
+  },
+  {
+    "type": "text",
+    "id": "martfury-path",
+    "title": "Martfury Path",
+    "content": "Martfury root directory path, e.g. /var/www/",
+    "help": "https://board.support/docs/#path"
+  },
+  {
+    "type": "password",
+    "id": "martfury-key",
+    "title": "Secret key",
+    "content": "Get it from the APP_KEY value of the file .env located in the root directory of Martfury."
+  },
+  {
+    "type": "button",
+    "id": "martfury-sync",
+    "title": "Import customers",
+    "content": "Import customers into Support Board. Only new customers will be imported.",
+    "button-text": "Start importing",
+    "button-url": "#"
+  },
+  {
+    "type": "button",
+    "id": "martfury-sync-sellers",
+    "title": "Import vendors",
+    "content": "Import vendors into Support Board as agents. Only new vendors will be imported.",
+    "button-text": "Start importing",
+    "button-url": "#"
+  }
+]

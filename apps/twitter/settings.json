@@ -1,0 +1,61 @@
+[
+  {
+    "type": "multi-input",
+    "id": "twitter",
+    "title": "Synchronization",
+    "content": "Enter the details of your Twitter app.",
+    "help": "https://board.support/docs/#twitter",
+    "value": [
+      {
+        "type": "text",
+        "id": "twitter-consumer-key",
+        "title": "Consumer key"
+      },
+      {
+        "type": "password",
+        "id": "twitter-consumer-secret",
+        "title": "Consumer secret"
+      },
+      {
+        "type": "text",
+        "id": "twitter-access-token",
+        "title": "Access token"
+      },
+      {
+        "type": "password",
+        "id": "twitter-secret-token",
+        "title": "Access token secret"
+      },
+      {
+        "type": "text",
+        "id": "twitter-username",
+        "title": "Your username"
+      },
+      {
+        "type": "text",
+        "id": "twitter-dev-label",
+        "title": "Dev environment label"
+      },
+      {
+        "type": "button",
+        "id": "twitter-callback",
+        "title": "Callback URL",
+        "button-text": "Callback URL",
+        "button-url": "#"
+      },
+      {
+        "type": "button",
+        "id": "twitter-subscribe",
+        "title": "Subscribe",
+        "button-text": "Subscribe",
+        "button-url": "#"
+      }
+    ]
+  },
+  {
+    "type": "number",
+    "id": "twitter-department",
+    "title": "Department ID",
+    "content": "Assign a department to all conversations started from Twitter. Enter the department ID."
+  }
+]

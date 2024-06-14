@@ -1,0 +1,29 @@
+[
+  {
+    "type": "multi-input",
+    "id": "telegram",
+    "title": "Synchronization",
+    "content": "Enter the bot token and click the button to synchronize the Telegram bot. Localhost cannot receive messages.",
+    "help": "https://board.support/docs/#telegram",
+    "value": [
+      {
+        "type": "password",
+        "id": "telegram-token",
+        "title": "Token"
+      },
+      {
+        "type": "button",
+        "id": "telegram-button",
+        "title": "Synchronize",
+        "button-text": "Synchronize now",
+        "button-url": "#"
+      }
+    ]
+  },
+  {
+    "type": "number",
+    "id": "telegram-department",
+    "title": "Department ID",
+    "content": "Assign a department to all conversations started from Telegram. Enter the department ID."
+  }
+]

@@ -1,0 +1,57 @@
+[
+  {
+    "type": "multi-input",
+    "id": "perfex-db",
+    "title": "Database details",
+    "content": "Enter the database details of the Perfex database.",
+    "value": [
+      {
+        "type": "text",
+        "id": "perfex-db-name",
+        "title": "Database name"
+      },
+      {
+        "type": "text",
+        "id": "perfex-db-user",
+        "title": "Database user"
+      },
+      {
+        "type": "password",
+        "id": "perfex-db-password",
+        "title": "Database password"
+      },
+      {
+        "type": "text",
+        "id": "perfex-db-host",
+        "title": "Database host"
+      },
+      {
+        "type": "text",
+        "id": "perfex-db-prefix",
+        "title": "Database prefix"
+      }
+    ]
+  },
+  {
+    "type": "text",
+    "id": "perfex-url",
+    "title": "Perfex URL",
+    "content": "Perfex URL. Ex. https://your-website/perfex/"
+  },
+  {
+    "type": "button",
+    "id": "perfex-sync",
+    "title": "Import contacts",
+    "content": "Sync all contacts of all clients with Support Board. Only new contacts will be imported.",
+    "button-text": "Start importing",
+    "button-url": "#"
+  },
+  {
+    "type": "button",
+    "id": "perfex-articles-sync",
+    "title": "Import articles",
+    "content": "Sync knowledge base articles with Support Board. Only new articles will be imported.",
+    "button-text": "Start importing",
+    "button-url": "#"
+  }
+]

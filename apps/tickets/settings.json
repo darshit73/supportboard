@@ -1,0 +1,281 @@
+[
+  {
+    "type": "number",
+    "id": "tickets-height",
+    "title": "Panel height",
+    "content": "Set the maximum height of the tickets panel."
+  },
+  {
+    "type": "number",
+    "id": "tickets-height-offset",
+    "title": "Offset",
+    "content": "Subtract the offset value from the height value."
+  },
+  {
+    "type": "checkbox",
+    "id": "tickets-registration-required",
+    "title": "Require registration",
+    "content": "Require the user registration or login in order to use the tickets area."
+  },
+  {
+    "type": "checkbox",
+    "id": "tickets-registration-disable-password",
+    "title": "Disable password",
+    "content": "Disable the login and remove the password field from the registration form."
+  },
+  {
+    "type": "checkbox",
+    "id": "tickets-articles",
+    "title": "Articles",
+    "content": "Display the articles section in the right area."
+  },
+  {
+    "type": "checkbox",
+    "id": "tickets-hide",
+    "title": "Do not show tickets in chat",
+    "content": "Hide tickets from the chat widget and chats from the ticket area."
+  },
+  {
+    "type": "checkbox",
+    "id": "tickets-conversations-title-user",
+    "title": "User name as title",
+    "content": "Display the user full name in the left panel instead of the conversation title."
+  },
+  {
+    "type": "text",
+    "id": "tickets-conversation-name",
+    "title": "Default conversation name",
+    "content": "Set the default name to use for conversations without a name."
+  },
+  {
+    "type": "multi-input",
+    "id": "tickets-names",
+    "title": "Ticket field names",
+    "content": "Change the default field names.",
+    "value": [
+      {
+        "type": "text",
+        "id": "tickets-names-title",
+        "title": "Title"
+      },
+      {
+        "type": "text",
+        "id": "tickets-names-message",
+        "title": "Message"
+      },
+      {
+        "type": "text",
+        "id": "tickets-names-panel",
+        "title": "Panel name"
+      },
+      {
+        "type": "text",
+        "id": "tickets-names-button",
+        "title": "Button name"
+      }
+    ]
+  },
+  {
+    "type": "text",
+    "id": "tickets-registration-redirect",
+    "title": "Registration redirect",
+    "content": "Redirect the user to the specified URL if the registration is required and the user is not logged in. Leave blank to use the default registration form."
+  },
+  {
+    "type": "select",
+    "id": "tickets-default-form",
+    "title": "Default form",
+    "content": "Set the default form to display if the registraion is required.",
+    "value": [
+      [ "login", "Login form" ],
+      [ "registration", "Registration form" ]
+    ]
+  },
+  {
+    "type": "multi-input",
+    "id": "tickets-fields",
+    "title": "Ticket fields",
+    "content": "Choose which fields to include in the new ticket form.",
+    "value": [
+      {
+        "type": "checkbox",
+        "id": "tickets-field-departments",
+        "title": "Departments"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-field-priority",
+        "title": "Priority"
+      }
+    ]
+  },
+  {
+    "type": "repeater",
+    "id": "tickets-custom-fields",
+    "title": "Ticket custom fields",
+    "content": "Add custom fields to the new ticket form.",
+    "items": [
+      {
+        "type": "text",
+        "name": "Name",
+        "id": "tickets-extra-field-name"
+      }
+    ]
+  },
+  {
+    "type": "multi-input",
+    "id": "tickets-disable-features",
+    "title": "Disable features",
+    "content": "Choose which fields to disable from the tickets area.",
+    "value": [
+      {
+        "type": "checkbox",
+        "id": "tickets-registration-login",
+        "title": "Registration / Login"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-first-ticket",
+        "title": "First ticket form"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-edit-profile",
+        "title": "Edit profile"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-left-panel",
+        "title": "Left panel"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-arrows",
+        "title": "Panels arrows"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-right-panel",
+        "title": "Right panel"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-profile-image",
+        "title": "Left profile image"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-department",
+        "title": "Department"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-button",
+        "title": "New ticket button"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-agent",
+        "title": "Agent area"
+      },
+      {
+        "type": "checkbox",
+        "id": "tickets-agent-details",
+        "title": "Agent details"
+      }
+    ]
+  },
+  {
+    "type": "text",
+    "id": "tickets-default-department",
+    "title": "Default department",
+    "content": "Set the default departments for all tickets. Enter the department ID."
+  },
+  {
+    "type": "multi-input",
+    "id": "tickets-welcome-message",
+    "title": "Welcome message",
+    "content": "Send a message to new users when they create the first ticket. Text formatting and merge fields are supported.",
+    "help": "https://board.support/docs/#text-editor",
+    "value": [
+      {
+        "type": "checkbox",
+        "id": "tickets-welcome-message-active",
+        "title": "Active"
+      },
+      {
+        "type": "textarea",
+        "id": "tickets-welcome-message-msg",
+        "title": "Message"
+      }
+    ]
+  },
+  {
+    "type": "select",
+    "id": "tickets-email-notification",
+    "title": "New conversation notification",
+    "content": "Send an email to the user when a new conversation is created.",
+    "value": [
+      [ "", "Disabled" ],
+      [ "all", "All channels" ],
+      [ "em-tk", "Email and ticket" ],
+      [ "c", "Chat only" ],
+      [ "tk", "Ticket only" ],
+      [ "em", "Email only" ]
+    ]
+  },
+  {
+    "type": "multi-input",
+    "setting": "emails",
+    "id": "tickets-email",
+    "title": "New conversation email",
+    "content": "Template for the email sent to the user when a new conversation is created. You can use text, HTML, and the following merge fields: {conversation_url_parameter}, {user_name}, {message}, {attachments}, {conversation_id}.",
+    "value": [
+      {
+        "type": "text",
+        "id": "tickets-email-subject",
+        "title": "Subject"
+      },
+      {
+        "type": "textarea",
+        "id": "tickets-email-content",
+        "title": "Content"
+      }
+    ]
+  },
+  {
+    "type": "checkbox",
+    "id": "tickets-enter-button",
+    "title": "Send message via enter button",
+    "content": "Send the message via the ENTER keyboard button."
+  },
+  {
+    "type": "multi-input",
+    "id": "tickets-recaptcha",
+    "title": "reCaptcha",
+    "content": "Protect the tickets area from spam and abuse with Google reCAPTCHA.",
+    "value": [
+      {
+        "type": "checkbox",
+        "id": "tickets-recaptcha-active",
+        "title": "Active"
+      },
+      {
+        "type": "text",
+        "id": "tickets-recaptcha-key",
+        "title": "Site key"
+      },
+      {
+        "type": "password",
+        "id": "tickets-recaptcha-secret",
+        "title": "Secret key"
+      }
+    ]
+  },
+  {
+    "type": "checkbox",
+    "id": "tickets-manual-init",
+    "title": "Manual initialization",
+    "content": "Disable auto-initialization of the tickets area. When this setting is active you must initialize the tickets area with a custom JavaScript API code written by you. If the tickets area doesn't appear and this setting is enabled, disable it."
+  }
+]

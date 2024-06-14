@@ -1,0 +1,39 @@
+[
+  {
+    "type": "multi-input",
+    "id": "wechat",
+    "title": "Synchronization",
+    "content": "Enter your WeChat Official Account information.",
+    "help": "https://board.support/docs/#wechat",
+    "value": [
+      {
+        "type": "text",
+        "id": "wechat-token",
+        "title": "Token"
+      },
+      {
+        "type": "text",
+        "id": "wechat-app-id",
+        "title": "App ID"
+      },
+      {
+        "type": "password",
+        "id": "wechat-app-secret",
+        "title": "App secret"
+      },
+      {
+        "type": "button",
+        "id": "wechat-btn",
+        "title": "Configuration URL",
+        "button-text": "Get configuration URL",
+        "button-url": "#"
+      }
+    ]
+  },
+  {
+    "type": "number",
+    "id": "wechat-department",
+    "title": "Department ID",
+    "content": "Assign a department to all conversations started from WeChat. Enter the department ID."
+  }
+]

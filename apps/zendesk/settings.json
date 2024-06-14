@@ -1,0 +1,32 @@
+[
+  {
+    "type": "checkbox",
+    "id": "zendesk-active",
+    "title": "Active",
+    "content": "Activate the Zendesk integration."
+  },
+  {
+    "type": "multi-input",
+    "id": "zendesk",
+    "title": "Zendesk settings",
+    "content": "Enter your Zendesk information.",
+    "help": "https://board.support/docs/#zendesk",
+    "value": [
+      {
+        "type": "text",
+        "id": "zendesk-domain",
+        "title": "Domain"
+      },
+      {
+        "type": "text",
+        "id": "zendesk-email",
+        "title": "Email"
+      },
+      {
+        "type": "password",
+        "id": "zendesk-key",
+        "title": "API key"
+      }
+    ]
+  }
+]

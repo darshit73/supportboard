@@ -1,0 +1,75 @@
+/*
+* 
+* ==========================================================
+* ADMIN.CSS
+* ==========================================================
+*
+* WHMCS only admin style
+*
+*/
+
+.sb-admin > .sb-header {
+    left: 195px;
+    top: 45px;
+    transition: left .5s;
+}
+
+.sb-admin {
+    height: calc(100% - 45px);
+    width: calc(100% - 260px);
+    top: 45px;
+    transition: width .5s;
+}
+
+.sb-admin > .sb-header > .sb-admin-nav-right {
+    left: 195px;
+    transition: left .5s;
+}
+
+.sb-menu [data-value="logout"] {
+    display: none;
+}
+
+body > .contentarea {
+    padding: 0;
+}
+
+body > .navigation {
+    position: fixed;
+    left: 0;
+    right: 0;
+}
+
+body > .sidebar {
+    padding-top: 45px;
+}
+
+.sidebar-opener {
+    z-index: 995;
+}
+
+.contentarea.sidebar-minimized {
+    margin-left: 0;
+}
+
+.sidebar-minimized .sb-admin > .sb-header > .sb-admin-nav-right, .sidebar-minimized .sb-admin > .sb-header {
+    left: 0;
+}
+
+.sidebar-minimized .sb-admin {
+    width: calc(100% - 67px);
+}
+
+#whmcsdevbanner, .footerbar, #miniTip {
+    display: none !important;
+}
+
+body > .navigation {
+    z-index: 999994;
+}
+
+@media (max-width: 464px) {
+    .sidebar-minimized .sb-admin {
+        width: 100%;
+    }
+}

@@ -1,0 +1,29 @@
+[
+  {
+    "type": "multi-input",
+    "id": "viber",
+    "title": "Synchronization",
+    "content": "Enter the bot token and click the button to synchronize the Viber bot. Localhost cannot receive messages.",
+    "help": "https://board.support/docs/#viber",
+    "value": [
+      {
+        "type": "password",
+        "id": "viber-token",
+        "title": "Token"
+      },
+      {
+        "type": "button",
+        "id": "viber-button",
+        "title": "Synchronize",
+        "button-text": "Synchronize now",
+        "button-url": "#"
+      }
+    ]
+  },
+  {
+    "type": "number",
+    "id": "viber-department",
+    "title": "Department ID",
+    "content": "Assign a department to all conversations started from Viber. Enter the department ID."
+  }
+]

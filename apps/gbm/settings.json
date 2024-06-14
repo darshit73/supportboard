@@ -1,0 +1,64 @@
+[
+  {
+    "type": "multi-input",
+    "id": "gbm",
+    "title": "Synchronization",
+    "content": "Enter the details of your Google Business Messages.",
+    "help": "https://board.support/docs/#gbm",
+    "value": [
+      {
+        "type": "text",
+        "id": "gbm-client-email",
+        "title": "Client email"
+      },
+      {
+        "type": "password",
+        "id": "gbm-private-key",
+        "title": "Private key"
+      },
+      {
+        "type": "password",
+        "id": "gbm-client-token",
+        "title": "Client token"
+      },
+      {
+        "type": "button",
+        "id": "gbm-webhook",
+        "title": "Webhook URL",
+        "button-text": "Webhook URL",
+        "button-url": "#"
+      }
+    ]
+  },
+  {
+    "type": "upload-image",
+    "id": "gbm-avatar-image",
+    "title": "Avatar image",
+    "content": "Set the avatar image shown next to the message. It must be a JPG image of 1024x1024px with a maximum size of 50KB.",
+    "background-size": "auto 64px"
+  },
+  {
+    "type": "number",
+    "id": "gbm-department",
+    "title": "Default department ID",
+    "content": "Assign a department to all conversations started from Google Business Messages. Enter the department ID."
+  },
+  {
+    "type": "repeater",
+    "id": "gbm-departments",
+    "title": "Departments",
+    "content": "Assign different departments to conversations started from different Google Business Messages locations. This setting overrides the default department.",
+    "items": [
+      {
+        "type": "text",
+        "id": "gbm-departments-place-id",
+        "name": "Place ID"
+      },
+      {
+        "type": "number",
+        "id": "gbm-departments-id",
+        "name": "Department ID"
+      }
+    ]
+  }
+]

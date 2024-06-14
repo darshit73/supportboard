@@ -1,0 +1,471 @@
+[
+  {
+    "type": "multi-input",
+    "id": "open-ai",
+    "title": "OpenAI",
+    "content": "OpenAI settings.",
+    "help": "https://board.support/docs/#open-ai",
+    "value": [
+      {
+        "type": "password",
+        "id": "open-ai-key",
+        "title": "API key"
+      },
+      {
+        "type": "select",
+        "id": "open-ai-model",
+        "title": "Model",
+        "value": [
+          [ "", "Default" ],
+          [ "gpt-3.5-turbo", "gpt-3.5-turbo" ],
+          [ "gpt-3.5-turbo-0613", "gpt-3.5-turbo-0613" ],
+          [ "gpt-3.5-turbo-16k", "gpt-3.5-turbo-16k" ],
+          [ "gpt-3.5-turbo-16k-0613", "gpt-3.5-turbo-16k-0613" ],
+          [ "gpt-4", "gpt-4" ],
+          [ "gpt-4-0613", "gpt-4-0613" ],
+          [ "gpt-4-32k", "gpt-4-32k" ],
+          [ "gpt-4-32k-0613", "gpt-4-32k-0613" ]
+        ]
+      },
+      {
+        "type": "select",
+        "id": "open-ai-mode",
+        "title": "Chatbot mode",
+        "value": [
+          [ "", "Only general questions" ],
+          [ "sources", "Only questions related to your sources" ],
+          [ "all", "All questions" ]
+        ]
+      },
+      {
+        "type": "text",
+        "id": "open-ai-fallback-message",
+        "title": "Fallback message"
+      },
+      {
+        "type": "text",
+        "id": "open-ai-prompt",
+        "title": "Prompt"
+      },
+      {
+        "type": "text",
+        "id": "open-ai-prompt-message-rewrite",
+        "title": "Prompt - Message rewriting"
+      },
+      {
+        "type": "number",
+        "id": "open-ai-tokens",
+        "title": "Max tokens"
+      },
+      {
+        "type": "number",
+        "id": "open-ai-temperature",
+        "title": "Temperature"
+      },
+      {
+        "type": "number",
+        "id": "open-ai-presence-penalty",
+        "title": "Presence penalty"
+      },
+      {
+        "type": "number",
+        "id": "open-ai-frequency-penalty",
+        "title": "Frequency penalty"
+      },
+      {
+        "type": "number",
+        "id": "open-ai-logit-bias",
+        "title": "Logit bias"
+      },
+      {
+        "type": "text",
+        "id": "open-ai-custom-model",
+        "title": "Custom model ID"
+      },
+      {
+        "type": "checkbox",
+        "id": "open-ai-active",
+        "title": "Chatbot"
+      },
+      {
+        "type": "checkbox",
+        "id": "open-ai-omit-previous-messages",
+        "title": "Omit previous messages"
+      },
+      {
+        "type": "checkbox",
+        "id": "open-ai-spelling-correction",
+        "title": "Spelling correction"
+      },
+      {
+        "type": "checkbox",
+        "id": "open-ai-spelling-correction-dialogflow",
+        "title": "Dialogflow spelling correction"
+      },
+      {
+        "type": "checkbox",
+        "id": "open-ai-rewrite",
+        "title": "Message rewrite button"
+      },
+      {
+        "type": "checkbox",
+        "id": "open-ai-user-expressions",
+        "title": "Generate user expressions"
+      },
+      {
+        "type": "checkbox",
+        "id": "open-ai-multlilingual-sources",
+        "title": "Multlilingual training sources"
+      },
+
+      {
+        "type": "button",
+        "id": "open-ai-user-expressions-btn",
+        "title": "Generate user expressions",
+        "button-url": "#",
+        "button-text": "Generate user expressions"
+      },
+      {
+        "type": "button",
+        "id": "open-ai-train-btn",
+        "title": "Chatbot training",
+        "button-url": "#",
+        "button-text": "Train your chatbot"
+      },
+      {
+        "type": "button",
+        "id": "open-ai-delete-training-btn",
+        "title": "Delete training",
+        "button-url": "#",
+        "button-text": "Delete training"
+      }
+    ]
+  },
+  {
+    "type": "repeater",
+    "id": "open-ai-sources",
+    "title": "OpenAI - Training sources",
+    "content": "Enter the URL of the sources you want to train the OpenAI chatbot from.",
+    "help": "https://board.support/docs/#open-ai-training",
+    "items": [
+      {
+        "type": "url",
+        "name": "URL",
+        "id": "open-ai-sources-url"
+      }
+    ]
+  },
+  {
+    "type": "repeater",
+    "id": "open-ai-sources-file",
+    "title": "OpenAI - Training sources - PDF and Text Files",
+    "content": "Upload the PDF and text files you want to train the OpenAI chatbot from.",
+    "help": "https://board.support/docs/#open-ai-training",
+    "items": [
+      {
+        "type": "upload-file",
+        "name": "",
+        "id": "open-ai-sources-file-url"
+      }
+    ]
+  },
+  {
+    "type": "multi-input",
+    "id": "google",
+    "title": "Google",
+    "content": "Google and Dialogflow settings.",
+    "help": "https://board.support/docs/#google-sync",
+    "value": [
+      {
+        "type": "text",
+        "id": "google-client-id",
+        "title": "Client ID"
+      },
+      {
+        "type": "password",
+        "id": "google-client-secret",
+        "title": "Client secret"
+      },
+      {
+        "type": "text",
+        "id": "google-refresh-token",
+        "title": "Refresh token"
+      },
+      {
+        "type": "text",
+        "id": "google-project-id",
+        "title": "Project ID or Agent Name"
+      },
+      {
+        "type": "select",
+        "id": "dialogflow-location",
+        "title": "Dialogflow location",
+        "content": "",
+        "value": [
+          [ "", "Global" ],
+          [ "us-central1-", "us-central1" ],
+          [ "northamerica-northeast1-", "northamerica-northeast1" ],
+          [ "us-east1-", "us-east1" ],
+          [ "us-west1-", "us-west1" ],
+          [ "europe-west1-", "europe-west1" ],
+          [ "europe-west2-", "europe-west2" ],
+          [ "australia-southeast1-", "australia-southeast1" ],
+          [ "asia-northeast1-", "asia-northeast1" ]
+        ]
+      },
+      {
+        "type": "select",
+        "id": "dialogflow-edition",
+        "title": "Dialogflow edition",
+        "content": "",
+        "value": [
+          [ "es", "Dialogflow ES" ],
+          [ "cx", "Dialogflow CX" ]
+        ]
+      },
+      {
+        "type": "number",
+        "id": "dialogflow-confidence",
+        "title": "Dialogflow Intent detection confidence",
+        "help": "https://board.support/docs/#dialogflow-confidence"
+      },
+      {
+        "type": "button",
+        "id": "dialogflow-sync-btn",
+        "title": "Synchronize",
+        "button-text": "Synchronize",
+        "button-url": "#"
+      },
+      {
+        "type": "button",
+        "id": "dialogflow-redirect-url-btn",
+        "title": "Authorised redirect URI",
+        "button-text": "Get URL",
+        "button-url": "#"
+      },
+      {
+        "type": "button",
+        "id": "dialogflow-saved-replies",
+        "title": "Add Intents to saved replies",
+        "button-text": "Add Intents",
+        "button-url": "#",
+        "help": "https://board.support/docs/#dialogflow-saved-replies"
+      },
+      {
+        "type": "checkbox",
+        "id": "dialogflow-active",
+        "title": "Dialogflow chatbot"
+      },
+      {
+        "type": "checkbox",
+        "id": "google-multilingual",
+        "title": "Multilingual"
+      },
+      {
+        "type": "checkbox",
+        "id": "google-multilingual-translation",
+        "title": "Multilingual via translation",
+        "help": "https://board.support/docs/#google-translation"
+      },
+      {
+        "type": "checkbox",
+        "id": "google-translation",
+        "title": "Automatic translation",
+        "help": "https://board.support/docs/#google-translation"
+      },
+      {
+        "type": "checkbox",
+        "id": "google-language-detection",
+        "title": "Language detection",
+        "help": "https://board.support/docs/#google-translation"
+      },
+      {
+        "type": "text",
+        "id": "google-language-detection-message",
+        "title": "Language detection message"
+      },
+      {
+        "type": "checkbox",
+        "id": "dialogflow-welcome",
+        "title": "Dialogflow welcome Intent",
+        "help": "https://board.support/docs/#dialogflow-welcome"
+      },
+      {
+        "type": "checkbox",
+        "id": "dialogflow-send-user-details",
+        "title": "Send user details",
+        "help": "https://board.support/docs/#dialogflow-send-details"
+      }
+    ]
+  },
+  {
+    "type": "repeater",
+    "id": "dialogflow-departments",
+    "title": "Dialogflow - Departments linking",
+    "content": "Set a dedicated Dialogflow agent for each department.",
+    "help": "https://board.support/docs/#dialogflow-departments",
+    "items": [
+      {
+        "type": "number",
+        "name": "Department ID",
+        "id": "dialogflow-departments-id"
+      },
+      {
+        "type": "text",
+        "name": "Project ID",
+        "id": "dialogflow-departments-agent"
+      }
+    ]
+  },
+  {
+    "type": "multi-input",
+    "id": "dialogflow-google-search",
+    "title": "Google search",
+    "content": "Let the bot search on Google to find answers to user questions.",
+    "help": "https://board.support/docs/#google-search",
+    "value": [
+      {
+        "type": "checkbox",
+        "id": "dialogflow-google-search-active",
+        "title": "Active"
+      },
+      {
+        "type": "checkbox",
+        "id": "dialogflow-google-search-spelling-active",
+        "title": "Spelling correction"
+      },
+      {
+        "type": "text",
+        "id": "dialogflow-google-search-id",
+        "title": "Search engine ID"
+      },
+      {
+        "type": "password",
+        "id": "dialogflow-google-search-key",
+        "title": "Api key"
+      },
+      {
+        "type": "select-checkbox",
+        "id": "dialogflow-google-search-entities",
+        "title": "Entities",
+        "value": [
+          [ "PERSON", "Person" ],
+          [ "LOCATION", "Location" ],
+          [ "ORGANIZATION", "Organization" ],
+          [ "EVENT", "Event" ],
+          [ "WORK_OF_ART", "Artwork" ],
+          [ "CONSUMER_GOOD", "Consumer product" ],
+          [ "PHONE_NUMBER", "Phone number" ],
+          [ "ADDRESS", "Address" ],
+          [ "DATE", "Date" ],
+          [ "NUMBER", "Number" ],
+          [ "PRICE", "Price" ]
+        ]
+      }
+    ]
+  },
+  {
+    "type": "checkbox",
+    "id": "dialogflow-timetable",
+    "title": "Disable during office hours",
+    "content": "Enable the chatbot outside of scheduled office hours only."
+  },
+  {
+    "type": "checkbox",
+    "id": "dialogflow-disable-tickets",
+    "title": "Disable for the tickets area",
+    "content": "Disable the chatbot for the tickets area."
+  },
+  {
+    "type": "multi-input",
+    "id": "dialogflow-human-takeover",
+    "title": "Human takeover",
+    "content": "If the chatbot doesn't understand a user's question, forwards the conversation to an agent.",
+    "help": "https://board.support/docs/#human-takeover",
+    "value": [
+      {
+        "type": "checkbox",
+        "id": "dialogflow-human-takeover-active",
+        "title": "Active"
+      },
+      {
+        "type": "checkbox",
+        "id": "dialogflow-human-takeover-auto",
+        "title": "Automatic human takeover"
+      },
+      {
+        "type": "checkbox",
+        "id": "dialogflow-human-takeover-disable-chatbot",
+        "title": "Disable chatbot"
+      },
+      {
+        "type": "textarea",
+        "id": "dialogflow-human-takeover-message",
+        "title": "Message"
+      },
+      {
+        "type": "textarea",
+        "id": "dialogflow-human-takeover-message-confirmation",
+        "title": "Confirmation message"
+      },
+      {
+        "type": "text",
+        "id": "dialogflow-human-takeover-confirm",
+        "title": "Confirm button text"
+      },
+      {
+        "type": "text",
+        "id": "dialogflow-human-takeover-cancel",
+        "title": "Cancel button text"
+      }
+    ]
+  },
+  {
+    "type": "number",
+    "id": "dialogflow-bot-delay",
+    "title": "Bot response delay",
+    "content": "Add a delay (ms) to the bot's responses. Default is 2000."
+  },
+  {
+    "type": "checkbox",
+    "id": "ai-smart-reply",
+    "title": "Smart Reply",
+    "content": "Follows a conversation between a human agent and an end user and provide response suggestions to the human agent in real-time.",
+    "help": "https://board.support/docs/#smart-reply"
+  },
+  {
+    "type": "checkbox",
+    "id": "dialogflow-email-piping",
+    "title": "Reply to user emails",
+    "content": "Allow the chatbot to reply to the user's emails if the answer is known and email piping is active."
+  },
+  {
+    "type": "checkbox",
+    "id": "dialogflow-sms",
+    "title": "Reply to user text messages",
+    "content": "Allow the chatbot to reply to the user's text messages if the answer is known."
+  },
+  {
+    "type": "multi-input",
+    "id": "chatbot-usage-limit",
+    "title": "Usage Limit",
+    "content": "Prevent any abuse from users by limiting the number of messages sent to the chatbot from one device.",
+    "value": [
+      {
+        "type": "number",
+        "id": "chatbot-usage-limit-quota",
+        "title": "Max message limit"
+      },
+      {
+        "type": "number",
+        "id": "chatbot-usage-limit-interval",
+        "title": "Interval (sec)"
+      },
+      {
+        "type": "textarea",
+        "id": "chatbot-usage-limit-message",
+        "title": "Message"
+      }
+    ]
+  }
+]

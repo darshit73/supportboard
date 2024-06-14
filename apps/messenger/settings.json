@@ -1,0 +1,44 @@
+[
+  {
+    "type": "button",
+    "id": "messenger-button",
+    "title": "Synchronization",
+    "content": "Click the button to start the Messenger synchronization. Localhost cannot and does not receive messages.",
+    "help": "https://board.support/docs/#messenger-sync",
+    "button-text": "Start synchronization",
+    "button-url": "#"
+  },
+  {
+    "type": "repeater",
+    "id": "messenger-pages",
+    "title": "Facebook pages",
+    "content": "You will get this information by completing the synchronization.",
+    "items": [
+      {
+        "type": "text",
+        "name": "Page name",
+        "id": "messenger-page-name"
+      },
+      {
+        "type": "text",
+        "name": "Page ID",
+        "id": "messenger-page-id"
+      },
+      {
+        "type": "password",
+        "name": "Page token",
+        "id": "messenger-page-token"
+      },
+      {
+        "type": "number",
+        "name": "Instagram ID",
+        "id": "messenger-instagram-id"
+      },
+      {
+        "type": "number",
+        "name": "Department ID",
+        "id": "messenger-page-department"
+      }
+    ]
+  }
+]
