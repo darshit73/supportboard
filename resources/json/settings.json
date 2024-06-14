@@ -40,7 +40,7 @@
       "type": "checkbox",
       "id": "front-auto-translations",
       "title": "Translate automatically",
-      "content": "Translate the chat widget's text elements automatically to match the user's browser language."
+      "content": "Translate the chat widget's text elements automatically to match the user language."
     },
     {
       "type": "checkbox",
@@ -70,7 +70,7 @@
       "type": "text",
       "id": "articles-title",
       "title": "Articles title",
-      "content": "Rename the Articles archive panel title. Default is 'Help Center'."
+      "content": "Rename the articles archive panel title. Default is 'Help Center'."
     },
     {
       "type": "text",
@@ -176,8 +176,8 @@
       "type": "multi-input",
       "id": "chat-timetable",
       "title": "Offline message",
-      "content": "Send a message to the user when their first message is sent outside of scheduled office hours or all agents are offline. Text formatting and merge fields are supported.",
-      "help": "https://board.support/docs/#office-hours",
+      "content": "Notify the user when their message is sent outside of the scheduled office hours or or all agents are offline.",
+      "help": "https://board.support/docs/#offline-message",
       "value": [
         {
           "type": "checkbox",
@@ -220,7 +220,8 @@
       "type": "multi-input",
       "id": "privacy",
       "title": "Privacy message",
-      "content": "Display a privacy message with Accept or Decline buttons. The user must click Accept to start using the chat. This is useful for enforcing a privacy policy and GDPR compliance.",
+      "content": "Before initiating the chat, the user must accept a privacy message in order to gain access.",
+      "help": "https://board.support/docs/#privacy-message",
       "value": [
         {
           "type": "checkbox",
@@ -268,7 +269,8 @@
       "type": "multi-input",
       "id": "popup-message",
       "title": "Popup message",
-      "content": "Display an automatic popup message to new users.",
+      "content": "Show a pop-up notification to all users.",
+      "help": "https://board.support/docs/#pop-up-message",
       "value": [
         {
           "type": "checkbox",
@@ -301,8 +303,8 @@
       "type": "multi-input",
       "id": "welcome-message",
       "title": "Welcome message",
-      "content": "Send a message to new users when they visit the website for the first time. Text formatting and merge fields are supported.",
-      "help": "https://board.support/docs/#text-editor",
+      "content": "Send a message to new users when they visit the website for the first time.",
+      "help": "https://board.support/docs/#welcome-message",
       "value": [
         {
           "type": "checkbox",
@@ -349,8 +351,8 @@
       "type": "multi-input",
       "id": "follow-message",
       "title": "Follow up message",
-      "content": "Send a message requesting the user's email if no agents reply within 15 seconds or all agents are offline. These settings will be used by all email forms. Text formatting and merge fields are supported.",
-      "help": "https://board.support/docs/#text-editor",
+      "content": "If no agents respond within the specified time interval, a message will be sent to request the user's details, such as their email.",
+      "help": "https://board.support/docs/#follow-up-message",
       "value": [
         {
           "type": "checkbox",
@@ -436,8 +438,8 @@
       "type": "multi-input",
       "id": "subscribe-message",
       "title": "Subscribe message",
-      "content": "Send a message requesting the user's email and send a confirmation email to the user. The message is sent only to users without email. Text formatting and merge fields are supported.",
-      "help": "https://board.support/docs/#text-editor",
+      "content": "Request the user to provide their email address and then send a confirmation email to the user.",
+      "help": "https://board.support/docs/#subscribe-message",
       "value": [
         {
           "type": "checkbox",
@@ -602,7 +604,7 @@
       "id": "supervisor",
       "title": "Supervisor",
       "content": "Set which actions to allow supervisors.",
-      "help": "https://board.support/docs/#supervisor",
+      "help": "https://board.support/docs/#agents",
       "value": [
         {
           "type": "text",
@@ -671,14 +673,26 @@
     },
     {
       "type": "checkbox",
+      "id": "disable-tags",
+      "title": "Disable tags",
+      "content": "Disable the tags."
+    },
+    {
+      "type": "checkbox",
       "id": "disable-filters",
       "title": "Disable filters",
       "content": "Disable the conversation filters."
     },
     {
       "type": "checkbox",
+      "id": "disable-channels-filter",
+      "title": "Disable channels filter",
+      "content": "Disable the channels filter."
+    },
+    {
+      "type": "checkbox",
       "id": "disable-attachments",
-      "title": "Disable attachments",
+      "title": "Disable attachments list",
       "content": "Disable the attachments list."
     },
     {
@@ -713,25 +727,6 @@
       ]
     },
     {
-      "type": "multi-input",
-      "id": "grammarly",
-      "title": "Grammarly",
-      "content": "Grammarly settings.",
-      "help": "https://board.support/docs/#grammarly",
-      "value": [
-        {
-          "type": "checkbox",
-          "id": "grammarly-active",
-          "title": "Active"
-        },
-        {
-          "type": "text",
-          "id": "grammarly-client-id",
-          "title": "Client ID"
-        }
-      ]
-    },
-    {
       "type": "repeater",
       "id": "user-table-extra-columns",
       "title": "Users table additional columns",
@@ -750,6 +745,7 @@
       "id": "saved-replies",
       "title": "Saved replies",
       "content": "Add and manage saved replies that can be used by agents in the chat editor. Saved replies can be printed by typing # followed by the reply name plus space. Use \u005cn to do a line break.",
+      "help": "https://board.support/docs/#saved-replies",
       "items": [
         {
           "type": "text",
@@ -781,6 +777,18 @@
       "title": "Manifest file URL",
       "content": "Use this option to change the PWA icon.  See the docs for more details.",
       "help": "https://board.support/docs/#pwa"
+    },
+    {
+      "type": "color",
+      "id": "color-admin-1",
+      "title": "Primary color",
+      "content": "Set the primary color of the admin area."
+    },
+    {
+      "type": "color",
+      "id": "color-admin-2",
+      "title": "Secondary color",
+      "content": "Set the secondary color of the admin area."
     }
   ],
   "notifications": [
@@ -899,13 +907,21 @@
       "type": "checkbox",
       "id": "notify-agent-email",
       "title": "Agent email notifications",
-      "content": "Send an email to an agent when a user replies and the agent is offline. An email is automatically sent to all agents for new conversations."
+      "content": "Send an email to an agent when a user replies and the agent is offline. An email is automatically sent to all agents for new conversations.",
+      "help": "https://board.support/docs/#email"
     },
     {
       "type": "checkbox",
       "id": "notify-user-email",
       "title": "User email notifications",
-      "content": "Send an email to the user when an agent replies and the user is offline."
+      "content": "Send an email to the user when an agent replies and the user is offline.",
+      "help": "https://board.support/docs/#email"
+    },
+    {
+      "type": "checkbox",
+      "id": "stop-notify-admins",
+      "title": "Do not send email notifications to admins",
+      "content": "Prevent admins from receiving email notifications."
     },
     {
       "type": "checkbox",
@@ -914,7 +930,7 @@
       "content": "Enable this option if email notifications are sent via cron job.",
       "help": "https://board.support/docs/#email-cron"
     },
-    {  
+    {
       "type": "checkbox",
       "id": "online-users-notification",
       "title": "Online users notification",
@@ -1069,6 +1085,20 @@
       ]
     },
     {
+      "type": "input-button",
+      "id": "test-sms-user",
+      "title": "Send a user text message notifcation",
+      "content": "Send a text message to the provided phone number.",
+      "button-text": "Send text message"
+    },
+    {
+      "type": "input-button",
+      "id": "test-sms-agent",
+      "title": "Send an agent text message notifcation",
+      "content": "Send a text message to the provided phone number.",
+      "button-text": "Send text message"
+    },
+    {
       "type": "multi-input",
       "id": "email-server",
       "title": "SMTP",
@@ -1105,6 +1135,20 @@
           "title": "Sender name"
         }
       ]
+    },
+    {
+      "type": "input-button",
+      "id": "test-email-user",
+      "title": "Send a user email notifcation",
+      "content": "Send an email notification to the provided email address.",
+      "button-text": "Send email"
+    },
+    {
+      "type": "input-button",
+      "id": "test-email-agent",
+      "title": "Send an agent email notifcation",
+      "content": "Send an email notification to the provided email address.",
+      "button-text": "Send email"
     },
     {
       "type": "multi-input",
@@ -1195,20 +1239,6 @@
       "title": "Notifications icon",
       "content": "Set the default notifications icon. The icon will be used as a profile image if the user doesn't have one.",
       "background-size": "auto 64px"
-    },
-    {
-      "type": "input-button",
-      "id": "test-email-user",
-      "title": "Test user email",
-      "content": "Send a test user notification email to verify email settings.",
-      "button-text": "Send email"
-    },
-    {
-      "type": "input-button",
-      "id": "test-email-agent",
-      "title": "Test agent email",
-      "content": "Send a test agent notification email to verify email settings.",
-      "button-text": "Send email"
     }
   ],
   "users": [
@@ -1227,7 +1257,8 @@
         [ "", "Disabled" ],
         [ "registration", "Registration and login form" ],
         [ "login", "Login form" ]
-      ]
+      ],
+      "help": "https://board.support/docs/#registration"
     },
     {
       "type": "checkbox",
@@ -2280,8 +2311,16 @@
       "type": "button",
       "id": "sb-path",
       "title": "Support Board Path",
-      "content": "Return the Support Board path of your server.",
+      "content": "This returns the Support Board path of your server.",
       "button-text": "Get Path",
+      "button-url": "#"
+    },
+    {
+      "type": "button",
+      "id": "sb-url",
+      "title": "Support Board URL",
+      "content": "This returns your Support Board URL.",
+      "button-text": "Get URL",
       "button-url": "#"
     },
     {
@@ -2289,7 +2328,7 @@
       "id": "sb-export-settings",
       "title": "Export settings",
       "content": "Export all settings.",
-      "button-text": "Export Settings",
+      "button-text": "Export settings",
       "button-url": "#"
     },
     {

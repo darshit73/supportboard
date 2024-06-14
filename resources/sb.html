@@ -47,7 +47,7 @@
         });
 
         function sbvpc(code) {
-            if (code == '') return;
+            if (!code ) return;
             if ($(button).hasClass('sb-loading')) return;
             $(button).addClass('sb-loading');
             $.ajax({

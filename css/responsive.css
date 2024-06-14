@@ -7,7 +7,7 @@
 * Front-end responsive css. This file is imported only.
 *
 */
-@media (max-width: 428px) {
+@media (max-width: 464px) {
   body.sb-chat-open {
     overscroll-behavior-y: contain; }
 
@@ -167,6 +167,9 @@
     padding-left: 55px; }
 
   .sb-header-main > .sb-responsive-close-btn, .sb-queue-active .sb-responsive-close-btn {
-    display: block; } }
+    display: block; }
+
+  .sb-overlay-panel {
+    border-radius: 0; } }
 
 /*# sourceMappingURL=responsive.css.map */

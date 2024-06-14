@@ -32,7 +32,7 @@ if (isset($_FILES['file'])) {
                 $url = SB_UPLOAD_URL . '/' . $directory_date;
             }
             if (!file_exists($path)) {
-                mkdir($path, 0777, true);
+                mkdir($path, 0755, true);
             }
             $file_name = rand(1000, 99999) . '_' . sb_string_slug($file_name);
             $path = $path . '/' . $file_name;

@@ -18,6 +18,7 @@
     // Conversation  
     var conversations = [];
     var conversations_area;
+    var conversations_area_list;
     var conversations_admin_list;
     var conversations_admin_list_ul;
     var conversations_filters;
@@ -27,6 +28,7 @@
     var woocommerce_products_box_ul = false;
     var pagination = 1;
     var notes_panel;
+    var tags_panel;
     var attachments_panel;
     var direct_message_box;
     var dialogflow_intent_box;
@@ -43,6 +45,7 @@
     var users_pagination_count = 1;
     var profile_box;
     var profile_edit_box;
+    var away_mode = true;
 
     // Settings
     var settings_area;
@@ -54,16 +57,13 @@
     var automations_area_nav;
     var conditions_area;
 
-    // Reports
-    var reports_area;
-
     // Miscellaneus
     var upload_target;
     var upload_on_success;
     var language_switcher_target;
     var timeout;
     var alertOnConfirmation;
-    var responsive = $(window).width() < 429;
+    var responsive = $(window).width() < 465;
     var scrolls = { last: 0, header: true, always_hidden: false };
     var localhost = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     var today = new Date();
@@ -71,16 +71,21 @@
     var agent_online = true;
     var active_interval = false;
     var pusher_timeout;
+    var away_timeout;
     var temp;
     var overlay;
     var SITE_URL;
     var ND = 'undefined';
     var wp_admin = false;
-    var x_down = false;
-    var y_down = false;
+    var touchmove;
+    var touchmove_x;
+    var touchmove_y;
     var editor_js = false;
     var editor_js_saving = false;
     var editor_js_loading = false;
+    var interval = false;
+    var active_keydown;
+    var reports_area;
 
     /*
     * ----------------------------------------------------------
@@ -178,7 +183,7 @@
         let box = admin.find('.sb-dialog-box').attr('data-type', type);
         let p = box.find('p');
         box.attr('id', id).setClass('sb-scroll-area', scroll).css('height', scroll ? (parseInt($(window).height()) - 200) + 'px' : '');
-        box.find('.sb-title').html(title);
+        box.find('.sb-title').html(sb_(title));
         p.html((type == 'alert' ? sb_('Are you sure?') + ' ' : '') + sb_(text));
         box.sbActive(true).css({ 'margin-top': (box.outerHeight() / -2) + 'px', 'margin-left': (box.outerWidth() / -2) + 'px' });
         overlay.sbActive(true);
@@ -232,12 +237,10 @@
     function searchInput(input, searchFunction) {
         let icon = $(input).parent().find('i');
         let search = $(input).val();
-        if (!icon.sbLoading()) {
-            SBF.search(search, () => {
-                icon.sbLoading(true);
-                searchFunction(search, icon);
-            });
-        };
+        SBF.search(search, () => {
+            icon.sbLoading(true);
+            searchFunction(search, icon);
+        });
     }
 
     function scrollPagination(area, check = false, offset = 0) {
@@ -275,6 +278,55 @@
         editor_js_loading = true;
         editor_js = new EditorJS({
             data: typeof data === 'string' ? { time: Date.now(), blocks: [data ? { id: 'sb', type: 'raw', data: { html: data } } : { id: 'sb', type: 'paragraph', data: { text: '' } }] } : data,
+            i18n: {
+                messages: {
+                    ui: {
+                        'blockTunes': {
+                            'toggler': {
+                                'Click to tune': sb_('Click to tune')
+                            },
+                        },
+                        'inlineToolbar': {
+                            'converter': {
+                                'Convert to': sb_('Convert to')
+                            }
+                        },
+                        'toolbar': {
+                            'toolbox': {
+                                'Add': sb_('Add')
+                            }
+                        }
+                    },
+                    toolNames: {
+                        'Text': sb_('Text'),
+                        'Heading': sb_('Heading'),
+                        'List': sb_('List'),
+                        'Image': sb_('Image'),
+                        'Code': sb_('Code'),
+                        'Raw HTML': sb_('Raw HTML'),
+                        'Bold': sb_('Bold'),
+                        'Italic': sb_('Italic'),
+                        'Link': sb_('Link'),
+                    },
+                    tools: {
+                        'list': {
+                            'Ordered': sb_('Ordered'),
+                            'Unordered': sb_('Unordered')
+                        }
+                    },
+                    blockTunes: {
+                        'delete': {
+                            'Delete': sb_('Delete')
+                        },
+                        'moveUp': {
+                            'Move up': sb_('Move up')
+                        },
+                        'moveDown': {
+                            'Move down': sb_('Move down')
+                        }
+                    },
+                }
+            },
             tools: {
                 list: {
                     class: List,
@@ -359,6 +411,114 @@
         }
     }
 
+    function absolute_url(url, base_url) {
+        if (url) {
+            if (url.indexOf('http') === 0 || url.indexOf('www') === 0) {
+                return url;
+            }
+            base_url = new URL(base_url);
+            if (url.substring(0, 2) == "//") {
+                return base_url.protocol + url;
+            }
+            if (url.charAt(0) == '/') {
+                return base_url.protocol + '//' + base_url.host + url;
+            }
+            if (/^\s*$/.test(url)) {
+                return '';
+            }
+            if (url.substring(0, 2) == './') {
+                url = '.' + url;
+            }
+            url = (base_url.href.slice(-1) == '/' ? base_url.href.slice(0, -1) : base_url.href) + '/' + url;
+            while (/\/\.\.\//.test(url = url.replace(/[^\/]+\/+\.\.\//g, '')));
+            url = url.replace(/\.$/, '').replace(/\/\./g, '').replace(/"/g, '%22').replace(/'/g, '%27').replace(/</g, '%3C').replace(/>/g, '%3E');
+            return url;
+        }
+        return '';
+    }
+
+    function saved_reply_search(search) {
+        SBF.search(search, () => {
+            let code = '';
+            let all = search.length > 1 ? false : true;
+            let area = saved_replies.find('.sb-replies-list > ul');
+            let no_results = `<li class="sb-no-results">${sb_('No results found.')}</li>`;
+            for (var i = 0; i < saved_replies_list.length; i++) {
+                if (all || saved_replies_list[i]['reply-name'].toLowerCase().includes(search) || saved_replies_list[i]['reply-text'].toLowerCase().includes(search)) {
+                    code += `<li><div>${saved_replies_list[i]['reply-name']}</div><div>${saved_replies_list[i]['reply-text']}</div></li>`;
+                }
+            }
+            area.html(code);
+            if (!all && SB_ADMIN_SETTINGS.dialogflow) {
+                let icon = area.closest('.sb-popup').find('.sb-icon-search');
+                icon.sbLoading(true);
+                SBApps.dialogflow.getIntents((response) => {
+                    let intents = SBApps.dialogflow.searchIntents(search, true);
+                    let code_2 = '';
+                    for (var i = 0; i < intents.length; i++) {
+                        let text = intents[i].messages[0].text;
+                        if (text && text.text) {
+                            code_2 += `<li><div>${intents[i].displayName}</div><div>${intents[i].messages[0].text.text[0]}</div></li>`;
+                        }
+                    }
+                    area.append(code_2 ? code_2 : (code ? '' : no_results));
+                    icon.sbLoading(false);
+                });
+            } else if (!code) {
+                area.html(no_results);
+            }
+        });
+    }
+
+    function whatsapp_direct_message_box(user_ids) {
+        let box = admin.find('#sb-whatsapp-send-template-box');
+        loadingGlobal();
+        SBF.ajax({
+            function: 'whatsapp-get-templates'
+        }, (response) => {
+            let code = '<option value=""></option>';
+            let provider = response[0];
+            let twilio = provider == 'twilio';
+            response = response[1];
+            if (response.error) {
+                return showResponse(response.error.message, 'error');
+            }
+            if (!Array.isArray(response)) {
+                return showResponse(response, 'error');
+            }
+            for (var i = 0; i < response.length; i++) {
+                if (provider == 'official' && response[i].status == 'APPROVED') {
+                    code += `<option value="${response[i].name}" data-languages="${response[i].languages}">${response[i].name}</option>`;
+                }
+                if (twilio) {
+                    code += `<option value="${response[i].languages[0].content.replace('"', '<>')}">${response[i].template_name}</option>`;
+                }
+            }
+            box.attr('data-provider', provider);
+            box.find('#sb-whatsapp-send-template-list').html(code);
+            SBForm.clear(box);
+            box.find('.sb-direct-message-users').val(user_ids.length ? user_ids.join(',') : 'all');
+            box.find('.sb-bottom > div').html('');
+            box.find('.sb-loading').sbLoading(false);
+            loadingGlobal(false);
+            box.sbShowLightbox();
+        });
+    }
+
+    function dialogDeleteFile(url, id, title) {
+        window.open(url);
+        dialog(`${sb_('For security reasons, delete the file after downloading it. Close this window to automatically delete it. File location:')}<pre>${url}</pre>`, 'info', false, id, title);
+    }
+
+    function touchEndEvent() {
+        touchmove_x = false;
+        touchmove_y = false;
+        setTimeout(() => {
+            touchmove[1].css('transform', '');
+            touchmove[1].removeClass('sb-touchmove');
+        }, 100);
+    }
+
     /*
     * ----------------------------------------------------------
     * # Apps
@@ -370,46 +530,38 @@
         dialogflow: {
             intents: false,
             token: SBF.storage('dialogflow-token'),
-            smart_reply_data: false,
+            dialogflow_languages: [],
+            original_response: false,
 
             smartReply: function (message = false) {
+                let conversation_id = SBChat.conversation.id;
                 SBF.ajax({
-                    function: SB_ADMIN_SETTINGS['smart-reply'] ? 'dialogflow-smart-reply' : 'open-ai-smart-reply',
+                    function: 'dialogflow-smart-reply',
                     message: message,
-                    smart_reply_data: this.smart_reply_data ? this.smart_reply_data : { 'conversation_id': SBChat.conversation.id },
                     token: this.token,
-                    conversation_id: SBChat.conversation.id,
-                    dialogflow_language: [activeUser().language ? activeUser().language : 'en'],
-                    language_detection: SB_ADMIN_SETTINGS['smart-reply-language-detection'] && SBChat.conversation && !SBChat.conversation.getLastUserMessage(false, true) && (!SB_ADMIN_SETTINGS['smart-reply-language-detection-bot'] || !SBChat.conversation.getLastUserMessage(false, 'bot'))
+                    conversation_id: conversation_id,
+                    dialogflow_languages: this.dialogflow_languages,
                 }, (response) => {
-                    let suggestions = response['suggestions'];
-                    let code = '';
-                    let area = conversations_area.find('.sb-conversation .sb-list');
-                    let is_bottom = area[0].scrollTop === (area[0].scrollHeight - area[0].offsetHeight);
-                    let last_conversation_message = SBChat.conversation && SBChat.conversation.getLastMessage() ? SBChat.conversation.getLastMessage().message : false;
-                    if (response['token'] && this.token != response['token']) {
-                        this.token = response['token'];
-                        SBF.storage('dialogflow-token', response['token']);
-                    }
-                    for (var i = 0; i < suggestions.length; i++) {
-                        if (suggestions[i] != last_conversation_message) {
-                            code += `<span>${suggestions[i]}</span>`;
+                    if (SBChat.conversation.id && conversation_id === SBChat.conversation.id) {
+                        let suggestions = response['suggestions'];
+                        let code = '';
+                        let is_bottom = conversations_area_list[0].scrollTop === (conversations_area_list[0].scrollHeight - conversations_area_list[0].offsetHeight);
+                        let last_conversation_message = SBChat.conversation && SBChat.conversation.getLastMessage() ? SBChat.conversation.getLastMessage().message : false;
+                        if (response.token) {
+                            this.token = response.token;
+                            SBF.storage('dialogflow-token', response.token);
                         }
+                        for (var i = 0; i < suggestions.length; i++) {
+                            if (suggestions[i] != last_conversation_message) {
+                                code += `<span>${suggestions[i]}</span>`;
+                            }
+                        }
+                        suggestions_area.html(code);
+                        if (is_bottom) SBChat.scrollBottom();
                     }
-                    this.smart_reply_data = response['smart_reply'];
-                    suggestions_area.html(code);
-                    if (is_bottom) SBChat.scrollBottom();
-                });
-            },
-
-            smartReplyUpdate: function (message, user_type = 'agent') {
-                SBF.ajax({
-                    function: 'dialogflow-smart-reply-update',
-                    message: message,
-                    smart_reply_data: this.smart_reply_data ? this.smart_reply_data : { 'conversation_id': SBChat.conversation.id },
-                    token: this.token,
-                    dialogflow_language: [activeUser().language],
-                    user_type: user_type
+                    if (response.dialogflow_languages) {
+                        this.dialogflow_languages = response.dialogflow_languages;
+                    }
                 });
             },
 
@@ -417,40 +569,41 @@
                 let expression = '';
                 let message = SBChat.conversation.getMessage(message_id);
                 let response = message.message;
+
                 if (SBF.isAgent(message.get('user_type'))) {
                     expression = SBChat.conversation.getLastUserMessage(message.get('index'));
                     expression = expression && expression.payload('sb-human-takeover') ? SBChat.conversation.getLastUserMessage(expression.get('index')) : false;
                     expression = expression ? expression.message : '';
+                    if (message.payload()['original-message']) {
+                        response = message.payload()['original-message'];
+                    }
                 } else {
                     expression = response;
-                    let messages = SBChat.conversation.messages;
-                    for (var i = message.get('index'); i < messages.length; i++) {
-                        if (['agent', 'admin'].includes(messages[i].get('user_type'))) {
-                            response = messages[i].message;
-                            break;
-                        }
+                    let translation = message.get('translation');
+                    let last_agent_message = SBChat.conversation.getLastUserMessage(false, true);
+                    if (last_agent_message) {
+                        response = last_agent_message.payload()['original-message'] ? last_agent_message.payload()['original-message'] : last_agent_message.message;
+                    }
+                    if (translation) {
+                        expression = translation;
                     }
                 }
-                if (this.intents === false) {
-                    SBF.ajax({ function: 'dialogflow-get-intents' }, (response) => {
-                        let code = '';
-                        if (Array.isArray(response)) {
-                            for (var i = 0; i < response.length; i++) {
-                                code += `<option value="${response[i].name}">${response[i].displayName}</option>`;
-                            }
-                            dialogflow_intent_box.find('#sb-intents-select').append(code);
-                            this.intents = response;
-                        } else this.intents = [];
-                    });
-                }
-                SBApps.openAI.generateIntents(expression);
+                this.getIntents((response) => {
+                    let code = '<option value="">' + sb_('New Intent') + '</option>';
+                    for (var i = 0; i < response.length; i++) {
+                        code += `<option value="${response[i].name}">${response[i].displayName}</option>`;
+                    }
+                    dialogflow_intent_box.find('#sb-intents-select').html(code);
+                    SBApps.openAI.generateIntents(expression);
+                });
                 dialogflow_intent_box.attr('data-message-id', message.id);
                 dialogflow_intent_box.find('.sb-type-text:not(.sb-first)').remove();
                 dialogflow_intent_box.find('.sb-type-text input').val(expression);
-                dialogflow_intent_box.find('textarea').val(response);
                 dialogflow_intent_box.find('#sb-intents-select').val('');
                 dialogflow_intent_box.find('.sb-search-btn').sbActive(false).find('input').val('');
                 this.searchIntents('');
+                this.original_response = response;
+                dialogflow_intent_box.find('textarea').val(response);
                 dialogflow_intent_box.sbShowLightbox();
             },
 
@@ -464,12 +617,12 @@
                         expressions.push($(this).val());
                     }
                 });
-                if ((response == '' && !intent_name) || expressions.length == 0) {
+                if ((!response && !intent_name) || expressions.length == 0) {
                     SBForm.showErrorMessage(dialogflow_intent_box, 'Please insert the bot response and at least one user expression.');
                     $(button).sbLoading(false);
                 } else {
                     SBF.ajax({
-                        function: intent_name == '' ? 'dialogflow-create-intent' : 'dialogflow-update-intent',
+                        function: !intent_name ? 'dialogflow-create-intent' : 'dialogflow-update-intent',
                         expressions: expressions,
                         response: response,
                         agent_language: dialogflow_intent_box.find('.sb-dialogflow-languages select').val(),
@@ -479,64 +632,89 @@
                         $(button).sbLoading(false);
                         if (response === true) {
                             admin.sbHideLightbox();
-                            showResponse(intent_name == '' ? 'Intent created' : 'Intent updated');
+                            showResponse(!intent_name ? 'Intent created' : 'Intent updated');
                         } else {
-                            let message = 'Error';
-                            if ('error' in response && 'message' in response['error']) {
-                                message = response['error']['message'];
-                            }
-                            SBForm.showErrorMessage(dialogflow_intent_box, message);
+                            SBForm.showErrorMessage(dialogflow_intent_box, response.error && response.error.message ? response.error && response.error.message : 'Error');
                         }
                     });
                 }
             },
 
-            searchIntents: function (search) {
+            getIntents: function (onSuccess) {
+                if (this.intents === false) {
+                    SBF.ajax({ function: 'dialogflow-get-intents' }, (response) => {
+                        this.intents = Array.isArray(response) ? response : [];
+                        onSuccess(this.intents);
+                    });
+                } else {
+                    onSuccess(this.intents);
+                }
+            },
+
+            searchIntents: function (search, return_intents = false) {
+                let all = search.length > 1 ? false : true;
+                let code = all ? `<option value="">${sb_('New Intent')}</option>` : '';
+                let intents = this.intents;
+                let intents_list = [];
                 search = search.toLowerCase();
-                SBF.search(search, () => {
-                    let all = search.length > 1 ? false : true;
-                    let code = all ? `<option value="">${sb_('New Intent')}</option>` : '';
-                    let intents = this.intents;
-                    for (var i = 0; i < intents.length; i++) {
-                        let found = all || intents[i].displayName.toLowerCase().includes(search);
-                        if (!found && 'trainingPhrases' in intents[i]) {
-                            let training_phrases = intents[i].trainingPhrases;
-                            for (var j = 0; j < training_phrases.length; j++) {
-                                for (var y = 0; y < training_phrases[j].parts.length; y++) {
-                                    if (training_phrases[j].parts[y].text.toLowerCase().includes(search)) {
-                                        found = true;
-                                        break;
-                                    }
+                for (var i = 0; i < intents.length; i++) {
+                    let found = all || intents[i].displayName.toLowerCase().includes(search);
+                    if (!found && intents[i].trainingPhrases) {
+                        let training_phrases = intents[i].trainingPhrases;
+                        for (var j = 0; j < training_phrases.length; j++) {
+                            for (var y = 0; y < training_phrases[j].parts.length; y++) {
+                                if (training_phrases[j].parts[y].text.toLowerCase().includes(search)) {
+                                    found = true;
+                                    break;
                                 }
-                                if (found) break;
                             }
+                            if (found) break;
                         }
-                        if (found) {
+                    }
+                    if (found) {
+                        if (return_intents) {
+                            intents_list.push(intents[i]);
+                        } else {
                             code += `<option value="${intents[i].name}">${intents[i].displayName}</option>`;
                         }
                     }
+                }
+                if (return_intents) {
+                    return intents_list;
+                } else {
                     dialogflow_intent_box.find('#sb-intents-select').html(code).change();
-                });
+                }
+                if (!search) {
+                    dialogflow_intent_box.find('textarea').val(this.original_response);
+                }
             },
 
             previewIntent: function (name) {
                 let code = '';
-                for (var i = 0; i < this.intents.length; i++) {
-                    if (this.intents[i].name == name) {
-                        let training_phrases = 'trainingPhrases' in this.intents[i] ? this.intents[i].trainingPhrases : [];
-                        let count = training_phrases.length;
-                        if (count > 1) {
-                            for (var j = 0; j < count; j++) {
-                                for (var y = 0; y < training_phrases[j].parts.length; y++) {
-                                    code += `<span>${training_phrases[j].parts[y].text}</span>`;
-                                    if (y == 15) break;
-                                }
+                let intent = this.getIntent(name);
+                if (intent) {
+                    let training_phrases = intent.trainingPhrases ? intent.trainingPhrases : [];
+                    let count = training_phrases.length;
+                    if (count > 1) {
+                        for (var j = 0; j < count; j++) {
+                            for (var y = 0; y < training_phrases[j].parts.length; y++) {
+                                code += `<span>${training_phrases[j].parts[y].text}</span>`;
+                                if (y == 15) break;
                             }
-                            dialog(code, 'info', false, 'intent-preview-box', '', count > 10);
                         }
-                        break;
+                        dialog(code, 'info', false, 'intent-preview-box', '', count > 10);
                     }
                 }
+            },
+
+            getIntent: function (name) {
+                let code = '';
+                for (var i = 0; i < this.intents.length; i++) {
+                    if (this.intents[i].name == name) {
+                        return this.intents[i];
+                    }
+                }
+                return false;
             },
 
             translate: function (strings, language_code, onSuccess) {
@@ -560,6 +738,9 @@
         },
 
         openAI: {
+            urls_history: [],
+            progress: 1,
+
             rewriteButton: function (value) {
                 if (open_ai_button.length) {
                     open_ai_button.sbActive(value.length > 2 && value.indexOf(' '));
@@ -569,26 +750,278 @@
             rewrite: function (message, greetings = false, onSuccess) {
                 SBF.ajax({
                     function: 'open-ai-message',
-                    model: 'gpt-3.5-turbo',
-                    message: 'Make the following sentence more friendly and professional ' + SB_LANGUAGE_CODES[SB_ADMIN_SETTINGS['active-agent-language']] + ' language' + (greetings ? ', add greetings' : '') + ': ' + message
+                    model: SB_ADMIN_SETTINGS.open_ai_model,
+                    message: (SB_ADMIN_SETTINGS.open_ai_prompt_rewrite ? SB_ADMIN_SETTINGS.open_ai_prompt_rewrite : 'Make the following sentence more friendly and professional') + ` and use ${SB_LANGUAGE_CODES[SB_ADMIN_SETTINGS.active_agent_language]} language${greetings ? ', add greetings' : ''}: """${message.replace('"', '\'')}"""`,
+                    extra: 'rewrite'
                 }, (response) => {
-                    if (!response[0]) console.error('OpenAI: ' + response[1].error.message);
+                    if (!response[0]) {
+                        console.error('OpenAI: ' + JSON.stringify(response[1]));
+                    }
+                    SBConversations.previous_editor_text = message;
                     onSuccess(response);
                 });
             },
 
             generateIntents: function (expression) {
-                if (SB_ADMIN_SETTINGS['open-ai-user-expressions'] && expression) {
+                if (SB_ADMIN_SETTINGS.open_ai_user_expressions && expression) {
                     let loader = dialogflow_intent_box.find('[data-value="add"]');
                     loader.sbLoading(true);
                     dialogflow_intent_box.find('.sb-open-ai-intent').remove();
                     SBF.ajax({ function: 'open-ai-user-expressions', message: expression }, (response) => {
                         let code = '';
                         for (var i = 0; i < response.length; i++) {
-                            code += `<div class="sb-input-setting sb-type-text sb-open-ai-intent"><input type="text" value="${response[i]}"></div>`;
+                            if (response[i]) {
+                                code += `<div class="sb-input-setting sb-type-text sb-open-ai-intent"><input type="text" value="${response[i].replace(/"/g, '')}"></div>`;
+                            }
                         }
                         if (code) dialogflow_intent_box.find('> div > .sb-type-text').last().after(code);
                         loader.sbLoading(false);
+                    });
+                }
+            },
+
+            crawler: {
+                errors: [],
+                base_url: false,
+                start_urls: [],
+                sitemap_processed_urls: [],
+                active_source: false,
+                history: [],
+                training_button: false,
+
+                start: function (urls) {
+                    if (urls.length) {
+                        let url = urls[0];
+                        let dialog_box = admin.find('#sb-embeddings-box p');
+                        urls.shift();
+                        if (!url || !url.includes('http')) {
+                            if (url) {
+                                dialog(sb_('Use a valid URL starting with http. The URL {R} is not valid.').replace('{R}', url));
+                            }
+                            this.training_button.sbLoading(false);
+                            return;
+                        }
+                        dialog_box.html(sb_('We are processing the source') + '<pre>' + url + '</pre><span>' + sb_('Only {R} sources left to complete.').replace('{R}', urls.length + 1) + '</span>');
+                        if (url.includes('.xml')) {
+                            this.active_source = url;
+                            SBF.ajax({ function: 'get-sitemap-urls', sitemap_url: url }, (response) => {
+                                if (Array.isArray(response)) {
+                                    this.base_url = response[0];
+                                    return this.start(urls.concat(response));
+                                } else {
+                                    console.error(response);
+                                    return this.start(urls);
+                                }
+                            });
+                        } else if (url.includes('.pdf') || url.includes('.txt')) {
+                            this.active_source = url;
+                            SBF.ajax({ function: 'open-ai-source-file-to-paragraphs', url: url }, (response) => {
+                                if (Array.isArray(response)) {
+                                    if (response.length) {
+                                        this.embeddings(response, (response) => {
+                                            if (response) {
+                                                return this.start(urls);
+                                            }
+                                        });
+                                    } else {
+                                        return this.start(urls);
+                                    }
+                                } else {
+                                    console.error(response);
+                                    return this.start(urls);
+                                }
+                            });
+                        } else if (this.start_urls.includes(url) && !this.sitemap_processed_urls.includes(url) && !SB_ADMIN_SETTINGS.open_ai_stop_crawler) {
+                            this.active_source = url;
+                            this.sitemap_processed_urls.push(url);
+                            this.sitemap([url], (response) => {
+                                return this.start(urls.concat(response));
+                            });
+                        } else {
+                            if (!this.active_source) {
+                                this.active_source = url;
+                            }
+                            this.getHTML(url, (response) => {
+                                if (response[0].length) {
+                                    let page = response[0];
+                                    let paragraphs = [];
+                                    page.find('ul').each(function () {
+                                        let code = '';
+                                        $(this).find('li').each(function () {
+                                            $(this).find('ul').remove();
+                                            let text = $(this).text().trim();
+                                            if (text.split(' ').length > 1 && text.length > 10) {
+                                                code += '###B###' + ($(this).index() + 1) + '. ' + $(this).text().trim();
+                                            }
+                                        });
+                                        $(this).html(code);
+                                    });
+                                    page.find('p').each(function () {
+                                        $(this).append('###B###');
+                                    });
+                                    page.find('span,label').each(function () {
+                                        $(this).html(' ' + $(this).html() + ' ');
+                                    });
+                                    page.find('a').each(function () {
+                                        let href = $(this).attr('href');
+                                        if (href) {
+                                            $(this).html(href.includes('http') ? href : absolute_url(href, SBApps.openAI.crawler.base_url ? SBApps.openAI.crawler.base_url : url));
+                                        }
+                                    });
+                                    page.find('h1,h2').each(function () {
+                                        $(this).prepend('--------------------------------------------------------------------------------');
+                                    });
+                                    page.find('h1,h2,h3,h4,h5,h6').each(function () {
+                                        $(this).prepend('###P###');
+                                    });
+                                    page.find('nav, ul').each(function () {
+                                        let text_inner = $(this)[0].textContent;
+                                        if (!SBApps.openAI.crawler.history.includes(text_inner)) {
+                                            SBApps.openAI.crawler.history.push(text_inner);
+                                        } else {
+                                            $(this).html('');
+                                        }
+                                    });
+                                    let list = page[0].textContent.split('###P###');
+                                    let list_2 = [];
+                                    for (var i = 0; i < list.length; i++) {
+                                        let text = list[i].replace(/\s\s+/g, ' ');
+                                        if (text.split(' ').length > 5 && text.length > 20) {
+                                            text = text.replace(/###B###/g, '\n');
+                                            if (!this.history.includes(text)) {
+                                                list_2.push(text);
+                                                this.history.push(text);
+                                            }
+                                        }
+                                    }
+                                    list = [];
+                                    for (var i = 0; i < list_2.length; i++) {
+                                        let text = list_2[i].trim();
+                                        while (text.length < 300 && list_2.length > i + 1) {
+                                            text += (['.', ',', ':', '!', '?', ';', '።', '।', '。', '။'].includes(text.slice(-1)) ? '' : ' . ') + list_2[i + 1].trim();
+                                            i++;
+                                        }
+                                        text = text.replace(/ \./g, '.');
+                                        if (text.substring(0, 10) == '----------') {
+                                            text = text.substring(80);
+                                        }
+                                        if (text.length > 3500) {
+                                            let texts = text.split('\n');
+                                            text = '';
+                                            for (var j = 0; j < texts.length; j++) {
+                                                if (text.length + texts[j].length < 3500 || j == texts.length - 1) {
+                                                    text += texts[j];
+                                                } else {
+                                                    paragraphs.push([text, response[1], url]);
+                                                    text = '';
+                                                }
+                                            }
+                                        } else {
+                                            paragraphs.push([text, response[1], url]);
+                                        }
+                                    }
+                                    this.embeddings(paragraphs, (response) => {
+                                        if (response) {
+                                            return this.start(urls);
+                                        }
+                                    });
+                                } else {
+                                    return this.start(urls);
+                                }
+                            });
+                        }
+                    } else {
+                        admin.find('#sb-embeddings-box p').html(sb_('We are processing the articles.'));
+                        SBF.ajax({ function: 'open-ai-embeddings-articles' }, () => {
+                            if (this.errors.length) {
+                                setTimeout(() => { dialog(sb_('There were {R} errors. Check the browser console for more details. Please try again.').replace('{R}', this.errors.length), 'info'); }, 300);
+                                console.error(this.errors);
+                            } else {
+                                showResponse('The chatbot has been successfully trained.');
+                                $('#open-ai-sources-file .repeater-item i').each(function () {
+                                    SBSettings.repeaterDelete(this);
+                                });
+                            }
+                            admin.sbHideLightbox();
+                            this.training_button.sbLoading(false);
+                            this.sitemap_processed_urls = [];
+                            for (var i = 0; i < this.start_urls.length; i++) {
+                                SBF.ajax({ function: 'delete-file', path: this.start_urls[i] });
+                            }
+                            SBSettings.save();
+                        });
+                    }
+                },
+
+                sitemap: function (urls, onSuccess, sitemap_urls = []) {
+                    if (urls.length) {
+                        let url = urls[0];
+                        urls.shift();
+                        sitemap_urls.push(url);
+                        if (!this.base_url) {
+                            this.base_url = url;
+                        }
+                        admin.find('#sb-embeddings-box p').html(sb_('We are generating the sitemap') + '<pre>' + url + '</pre><span>' + sb_('Only {R} pages left to complete.').replace('{R}', urls.length + 1) + '</span>');
+                        this.getHTML(url, (response) => {
+                            let links = response[0].find('a');
+                            url = new URL(url);
+                            links.each((i, element) => {
+                                let inner_url = $(element).attr('href');
+                                if (inner_url) {
+                                    inner_url = absolute_url(inner_url, this.base_url);
+                                    if (inner_url.includes('#')) {
+                                        inner_url = inner_url.substring(0, inner_url.indexOf('#'));
+                                    }
+                                    if (!sitemap_urls.includes(inner_url) && !urls.includes(inner_url) && inner_url.indexOf(url.origin) === 0 && (!inner_url.substring(inner_url.lastIndexOf('/')).includes('.') || /.php|.html|.html|.asp|.aspx|.dhtml|.ece|.gne|.htmls|.php3|.rss|.rhtml/.test(inner_url))) {
+                                        urls.push(inner_url);
+                                    }
+                                }
+                            });
+                            this.sitemap(urls, onSuccess, sitemap_urls);
+                        });
+                    } else {
+                        onSuccess(sitemap_urls);
+                    }
+                },
+
+                getHTML: function (url, onSuccess) {
+                    url = url.trim();
+                    SBF.ajax({ function: 'get-html', url: url }, function (response) {
+                        let language = '';
+                        $('body').find('#sb-html').remove();
+                        if (response[1] == 200) {
+                            response = response[0];
+                            language = response.substring(response.indexOf('<html'), response.indexOf('>', response.indexOf('<html')));
+                            if (language.includes('lang=')) {
+                                let index = response.indexOf('lang=') + 6;
+                                language = response.substring(index, response.indexOf('"', index)).toLowerCase();
+                            } else {
+                                language = '';
+                            }
+                            response = response.substring(response.indexOf('<body'), response.indexOf('</body')).replace('<br>', '\n').replace('<br />', '\n').replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '').replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '').replace(/src=/g, 'data-src=').replace(/srcset=/g, 'data-srcset=').replace(/<link /g, '<').replace(/<meta /g, '<');
+                            $('body').append('<div id="sb-html" style="display:none">' + response.replace(/\s\s+/g, ' ') + '</div>');
+                        }
+                        onSuccess([$('body').find('#sb-html'), language]);
+                    });
+                },
+
+                embeddings: function (paragraphs, onSuccess) {
+                    SBF.ajax({ function: 'open-ai-get-embeddings', paragraphs: JSON.stringify(paragraphs), save_source: this.active_source }, (response) => {
+                        this.errors = this.errors.concat(response[1]);
+                        let errors = this.errors.length;
+                        for (var i = 0; i < response[0].length; i++) {
+                            if (!response[0][i]) {
+                                errors++;
+                                break;
+                            }
+                        }
+                        if (response[1] == 'chars-limit-exceeded' || (response[1] && response[1][0] && response[1][0].error)) {
+                            dialog(response[1] == 'chars-limit-exceeded' ? sb_('The chatbot cannot be trained with these sources because the limit of your plan is {R} characters. Upgrade your plan to increase the number of characters.').replace('{R}', response[2]) : response[1][0].error.message, 'info');
+                            onSuccess(false);
+                            this.training_button.sbLoading(false);
+                        } else {
+                            onSuccess(true);
+                        }
                     });
                 }
             }
@@ -775,7 +1208,7 @@
                         function: 'aecommerce-get-conversation-details',
                         aecommerce_id: aecommerce_id.value
                     }, (response) => {
-                        code = `<h3>${SB_ADMIN_SETTINGS['aecommerce-panel-title']}</h3><div><div class="sb-split"><div><div class="sb-title">${sb_('Number of orders')}</div><span>${response['orders_count']} ${sb_('orders')}</span></div><div><div class="sb-title">${sb_('Total spend')}</div><span>${response['currency_symbol']}${response['total']}</span></div></div><div class="sb-title">${sb_('Cart')}</div><div class="sb-list-items sb-list-links sb-aecommerce-cart">`;
+                        code = `<h3>${SB_ADMIN_SETTINGS.aecommerce_panel_title}</h3><div><div class="sb-split"><div><div class="sb-title">${sb_('Number of orders')}</div><span>${response['orders_count']} ${sb_('orders')}</span></div><div><div class="sb-title">${sb_('Total spend')}</div><span>${response['currency_symbol']}${response['total']}</span></div></div><div class="sb-title">${sb_('Cart')}</div><div class="sb-list-items sb-list-links sb-aecommerce-cart">`;
                         for (var i = 0; i < response['cart'].length; i++) {
                             let product = response['cart'][i];
                             code += `<a href="${product['url']}" target="_blank" data-id="${product['id']}"><span>#${product['id']}</span> <span>${product['name']}</span> <span>x ${product['quantity']}</span></a>`;
@@ -845,7 +1278,7 @@
                                 code += '</div>';
                             }
                         }
-                        code += `<a href="${SB_ADMIN_SETTINGS['whmcs-url']}/clientssummary.php?userid=${response['client-id']}" target="_blank" class="sb-btn sb-whmcs-link">${sb_('View on WHMCS')}</a>`;
+                        code += `<a href="${SB_ADMIN_SETTINGS.whmcs_url}/clientssummary.php?userid=${response['client-id']}" target="_blank" class="sb-btn sb-whmcs-link">${sb_('View on WHMCS')}</a>`;
                         $(this.panel).html(code).sbLoading(false);
                         collapse(this.panel, 160);
                     });
@@ -858,7 +1291,7 @@
 
             conversationPanel: function () {
                 let perfex_id = activeUser().getExtra('perfex-id');
-                conversations_area.find('.sb-panel-perfex').html(perfex_id == '' ? '' : `<a href="${SB_ADMIN_SETTINGS['perfex-url']}/admin/clients/client/${perfex_id.value}" target="_blank" class="sb-btn sb-perfex-link">${sb_('View on Perfex')}</a>`);
+                conversations_area.find('.sb-panel-perfex').html(perfex_id ? `<a href="${SB_ADMIN_SETTINGS.perfex_url}/admin/clients/client/${perfex_id.value}" target="_blank" class="sb-btn sb-perfex-link">${sb_('View on Perfex')}</a>` : '');
             }
         },
 
@@ -923,7 +1356,7 @@
         zendesk: {
 
             conversationPanel: function () {
-                if (!SB_ADMIN_SETTINGS['zendesk-active']) return;
+                if (!SB_ADMIN_SETTINGS.zendesk_active) return;
                 let zendesk_id = activeUser().getExtra('zendesk-id');
                 let phone = activeUser().getExtra('phone');
                 let email = activeUser().get('email');
@@ -958,24 +1391,24 @@
             popupCode: function (items, label = true) {
                 let code = '';
                 for (var i = 0; i < items.length; i++) {
-                    code += `<li data-id="${items[i]['id']}"><div class="sb-image" style="background-image:url('${items[i]['image']}')"></div><div><span>${items[i]['name']}</span><span>${SB_ADMIN_SETTINGS['currency']}${items[i]['price']}</span></div></li>`;
+                    code += `<li data-id="${items[i]['id']}"><div class="sb-image" style="background-image:url('${items[i]['image']}')"></div><div><span>${items[i]['name']}</span><span>${SB_ADMIN_SETTINGS.currency}${items[i]['price']}</span></div></li>`;
                 }
-                return label ? (code == '' ? `<p>${sb_('No products found')}</p>` : code) : code;
+                return label ? (code ? code : `<p>${sb_('No products found')}</p>`) : code;
             },
 
             popupSearch: function (input) {
                 searchInput(input, (search, icon) => {
-                    if (search == '') {
-                        this.popupPopulate(function () {
-                            $(icon).sbLoading(false);
-                        });
-                    } else {
+                    if (search) {
                         this.popupPaginationNumber = 1;
                         SBF.ajax({
                             function: 'woocommerce-search-products',
                             search: search
                         }, (response) => {
                             woocommerce_products_box_ul.html(this.popupCode(response));
+                            $(icon).sbLoading(false);
+                        });
+                    } else {
+                        this.popupPopulate(function () {
                             $(icon).sbLoading(false);
                         });
                     }
@@ -996,7 +1429,7 @@
             },
 
             popupPopulate: function (onSuccess = false) {
-                this.popupLanguage = activeUser() != false && SB_ADMIN_SETTINGS['languages'].includes(activeUser().language) ? activeUser().language : '';
+                this.popupLanguage = activeUser() != false && SB_ADMIN_SETTINGS.languages.includes(activeUser().language) ? activeUser().language : '';
                 this.popupPaginationNumber = 1;
                 woocommerce_products_box_ul.html('').sbLoading(true);
                 SBF.ajax({
@@ -1026,7 +1459,6 @@
                 }, (response) => {
                     woocommerce_products_box_ul.append(this.popupCode(response, false)).sbLoading(false);
                     this.popupPaginationNumber++;
-                    scrollPagination(area, false, 300);
                     if (!response.length) this.popupPaginationNumber = 0;
                 });
             },
@@ -1164,7 +1596,7 @@
             unsupported.push('timetable', 'registration', 'table', 'inputs');
             if (app_name != 'Messenger') unsupported.push('email');
             for (var i = 0; i < unsupported.length; i++) {
-                if (message.includes('[' + unsupported[i])) showResponse('The Support Board {R} rich message is not supported by {R2}. The rich message was not sent to {R2}.'.replace(/{R}/g, SBF.slugToString(unsupported[i])).replace(/{R2}/g, app_name), 'error');
+                if (message.includes('[' + unsupported[i])) showResponse('The {R} rich message is not supported by {R2}. The rich message was not sent to {R2}.'.replace(/{R}/g, SBF.slugToString(unsupported[i])).replace(/{R2}/g, app_name), 'error');
             }
         }
     }
@@ -1178,8 +1610,8 @@
     var SBSettings = {
         init: false,
 
-        save: function (btn) {
-            if (loading(btn)) return;
+        save: function (btn = false) {
+            if (btn && loading(btn)) return;
             let external_settings = {};
             let settings = {};
             let tab = settings_area.find(' > .sb-tab > .sb-nav .sb-active').attr('id');
@@ -1187,7 +1619,9 @@
                 case 'tab-articles':
                     this.articles.save((response) => {
                         showResponse(response === true ? 'Articles and categories saved' : response);
-                        $(btn).sbLoading(false);
+                        if (btn) {
+                            $(btn).sbLoading(false);
+                        }
                     });
                     break;
                 case 'tab-automations':
@@ -1196,7 +1630,9 @@
                         showResponse(response === true ? 'Automations saved' : response);
                         SBSettings.automations.populate();
                         automations_area_nav.find(`[data-id="${active}"]`).click();
-                        $(btn).sbLoading(false);
+                        if (btn) {
+                            $(btn).sbLoading(false);
+                        }
                     });
                     break;
                 case 'tab-translations':
@@ -1206,7 +1642,9 @@
                         translations: JSON.stringify(this.translations.to_update)
                     }, () => {
                         showResponse('Translations saved');
-                        $(btn).sbLoading(false);
+                        if (btn) {
+                            $(btn).sbLoading(false);
+                        }
                     });
                     break;
                 default:
@@ -1241,8 +1679,10 @@
                         external_settings: external_settings,
                         external_settings_translations: this.translations.translations
                     }, () => {
-                        showResponse('Settings saved');
-                        $(btn).sbLoading(false);
+                        if (btn) {
+                            showResponse('Settings saved');
+                            $(btn).sbLoading(false);
+                        }
                     });
                     break;
             }
@@ -1267,7 +1707,7 @@
         },
 
         initHTML: function (response) {
-            if ('slack-agents' in response) {
+            if (response['slack-agents']) {
                 let code = '';
                 for (var key in response['slack-agents'][0]) {
                     code += `<div data-id="${key}"><select><option value="${response['slack-agents'][0][key]}"></option></select></div>`;
@@ -1287,6 +1727,7 @@
                 case 'text':
                 case 'password':
                 case 'color':
+                case 'upload-file':
                     return [id, item.find('input').val(), type];
                 case 'textarea':
                     return [id, item.find('textarea').val(), type];
@@ -1361,6 +1802,7 @@
                 case 'number':
                 case 'text':
                 case 'password':
+                case 'upload-file':
                     settings_area.find(`${id} input`).val(value);
                     break;
                 case 'textarea':
@@ -1589,21 +2031,25 @@
                 });
                 if (this.categories.length) {
                     this.categories.sort(function (a, b) {
-                        return a.title.localeCompare(b.title);
+                        return a.title && b.title ? a.title.localeCompare(b.title) : 1;
                     });
                 }
                 SBF.ajax({
                     function: 'save-articles',
-                    articles: this.articles,
+                    articles: JSON.stringify(this.articles),
                     translations: this.translations,
                     categories: this.categories.length ? this.categories : 'delete_all'
                 }, (response) => {
                     articles_area.find('.sb-menu-wide .sb-active').click();
                     articles_area.find(`.sb-nav [data-id="${this.activeID()}"]`).click();
                     this.updateSelect();
-                    if (onSuccess) onSuccess(response);
+                    if (onSuccess) {
+                        onSuccess(response);
+                    }
                 });
-                if (SBApps.is('dialogflow')) SBF.ajax({ function: 'dialogflow-knowledge', articles: this.articles });
+                if (SBApps.is('dialogflow')) {
+                    SBF.ajax({ function: 'dialogflow-knowledge', articles: this.articles });
+                }
             },
 
             show: function (article_id = false, element = false, language = false) {
@@ -1675,7 +2121,9 @@
                         if (this.translations[key][i].id === article_id) this.translations[key].splice(i, 1);
                     }
                 }
-                editorJSDestroy();
+                if (!category) {
+                    editorJSDestroy();
+                }
             },
 
             populate: function (items = false, category = false) {
@@ -1859,10 +2307,14 @@
                                 let element = area.find(`[data-id="${key}"]`);
                                 if (element.hasClass('image')) {
                                     element.css('background-image', `url(${item[key]})`).attr('data-value', item[key]);
-                                    if (item[key] == '') element.removeAttr('data-value');
+                                    if (!item[key]) {
+                                        element.removeAttr('data-value');
+                                    }
                                 } else if (element.attr('type') == 'checkbox') {
                                     element.prop('checked', item[key]);
-                                } else element.val(item[key]);
+                                } else {
+                                    element.val(item[key]);
+                                }
                             }
                             if (conditions) {
                                 for (var key in conditions) {
@@ -1937,7 +2389,7 @@
                         }
                         break;
                     case 'more':
-                        code = `<h2>${sb_('Department ID')}</h2><div class="sb-input-setting sb-type-number"><div><input data-id="department" type="number"></div></div><h2>${sb_('Agent ID')}</h2><div class="sb-input-setting sb-type-number"><div><input data-id="agent" type="number"></div></div><h2>${sb_('Article IDs')}</h2><div class="sb-input-setting sb-type-number"><div><input data-id="articles" type="text"></div></div><h2>${sb_('Articles category')}</h2><div class="sb-input-setting sb-type-number"><div><input data-id="articles_category" type="text"></div></div>`;
+                        code = `<h2>${sb_('Department ID')}</h2><div class="sb-input-setting sb-type-number"><div><input data-id="department" type="number"></div></div><h2>${sb_('Agent ID')}</h2><div class="sb-input-setting sb-type-number"><div><input data-id="agent" type="number"></div></div><h2>${sb_('Tags')}</h2><div class="sb-input-setting sb-type-text"><div><input data-id="tags" type="text"></div></div><h2>${sb_('Article IDs')}</h2><div class="sb-input-setting sb-type-number"><div><input data-id="articles" type="text"></div></div><h2>${sb_('Articles category')}</h2><div class="sb-input-setting sb-type-number"><div><input data-id="articles_category" type="text"></div></div>`;
                         break;
                 }
                 automations_area.find('.sb-automation-extra').html(code);
@@ -2208,11 +2660,12 @@
     var SBReports = {
         chart: false,
         active_report: false,
+        active_date_range: false,
 
         initChart: function (data, type = 'line', label_type = 1) {
             let values = [];
             let labels = [];
-            let blues = ['#049CFF', '#74C4F7', '#B9E5FF', '#0562A0', '#003B62', '#1F74C4', '#436786'];
+            let blues = SB_ADMIN_SETTINGS.color ? [SB_ADMIN_SETTINGS.color] : ['#049CFF', '#74C4F7', '#B9E5FF', '#0562A0', '#003B62', '#1F74C4', '#436786'];
             for (var key in data) {
                 values.push(data[key][0]);
                 labels.push(key);
@@ -2222,15 +2675,17 @@
                     blues.push('hsl(' + 210 + ', ' + Math.floor(Math.random() * 100) + '%, ' + Math.floor(Math.random() * 100) + '%)');
                 }
             }
-            if (this.chart) this.chart.destroy();
+            if (this.chart) {
+                this.chart.destroy();
+            }
             this.chart = new Chart(reports_area.find('canvas'), {
                 type: type,
                 data: {
                     labels: labels,
                     datasets: [{
                         data: values,
-                        backgroundColor: type == 'line' ? '#028be530' : blues,
-                        borderColor: type == 'line' ? '#049CFF' : '#FFFFFF',
+                        backgroundColor: type == 'line' ? (SB_ADMIN_SETTINGS.color ? '#cbcbcb82' : '#028be530') : blues,
+                        borderColor: type == 'line' ? (SB_ADMIN_SETTINGS.color ? SB_ADMIN_SETTINGS.color : '#049CFF') : '#FFFFFF',
                         borderWidth: 0
                     }],
                 },
@@ -2299,8 +2754,13 @@
             let area = reports_area.find('.sb-tab > .sb-content');
             date_range = SBF.null(date_range) ? [false, false] : date_range.split(' - ');
             area.sbLoading(true);
-            if (name) this.active_report = name;
-            if (!this.active_report) return;
+            if (name) {
+                this.active_report = name;
+            }
+            if (!this.active_report) {
+                return;
+            }
+            this.active_date_range = date_range;
             this.getData(this.active_report, date_range[0], date_range[1], (response) => {
                 if (response == false) {
                     area.addClass('sb-no-results-active');
@@ -2377,6 +2837,18 @@
             settings['ranges'][sb_('This Month')] = [moment().startOf('month'), moment().endOf('month')];
             settings['ranges'][sb_('Last Month')] = [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')];
             reports_area.find('#sb-date-picker').daterangepicker(settings).val('');
+        },
+
+        export: function (onSuccess) {
+            SBF.ajax({
+                function: 'reports-export',
+                name: this.active_report,
+                date_start: this.active_date_range[0],
+                date_end: this.active_date_range[1],
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            }, (response) => {
+                onSuccess(response);
+            });
         }
     }
 
@@ -2411,7 +2883,7 @@
             this.loading();
             users_pagination = 1;
             users_pagination_count = 1;
-            let settings = type[0] == 'online' ? ['get-online-users', SB_ACTIVE_AGENT['id'], this.sorting[0]] : ['get-users', -1, this.sorting];
+            let settings = type[0] == 'online' ? ['get-online-users', SB_ACTIVE_AGENT.id, this.sorting[0]] : ['get-users', -1, this.sorting];
             SBF.ajax({
                 function: settings[0],
                 sorting: settings[2],
@@ -2496,7 +2968,7 @@
         update: function () {
             if (!this.busy) {
                 let checks = ['user', 'visitor', 'lead', 'agent'];
-                let populate = checks.includes(this.user_types[0]) && this.search_query == '';
+                let populate = checks.includes(this.user_types[0]) && !this.search_query;
                 let filter = users_table_menu.find('.sb-active').data('type');
                 if (filter == 'online') {
                     this.filter(filter);
@@ -2543,7 +3015,7 @@
                     let slug = this.table_extra[i];
                     code += `<td class="sb-td-${slug}">${this.user_main_fields.includes(slug) ? user.get(slug) : user.getExtra(slug)}</td>`;
                 }
-                return `<tr data-user-id="${user.id}" data-user-type="${user.type}"><td><input type="checkbox" /></td><td class="sb-td-profile"><a class="sb-profile"><img loading="lazy" src="${user.image}" /><span>${user.name}</span></a></td>${code}<td class="sb-td-email">${user.get('email')}</td><td class="sb-td-ut">${sb_(user.type)}</td><td>${SBF.beautifyTime(user.get('last_activity'), true)}</td><td>${user.get('creation_time')}</td></tr>`;
+                return `<tr data-user-id="${user.id}" data-user-type="${user.type}"><td><input type="checkbox" /></td><td class="sb-td-profile"><a class="sb-profile"><img loading="lazy" src="${user.image}" /><span>${user.name}</span></a></td>${code}<td class="sb-td-email">${user.get('email')}</td><td class="sb-td-ut">${sb_(user.type)}</td><td>${SBF.beautifyTime(user.get('last_activity'), true)}</td><td>${SBF.beautifyTime(user.get('creation_time'))}</td></tr>`;
             } else {
                 SBF.error('User not of type SBUser', 'SBUsers.getRow');
                 return false;
@@ -2665,26 +3137,33 @@
 
         // CSV generation and download
         csv: function () {
-            SBF.ajax({ function: 'csv-users', users_id: SBUsers.getSelected() }, (response) => window.open(response));
+            SBF.ajax({ function: 'csv-users', users_id: SBUsers.getSelected() }, (response) => {
+                dialogDeleteFile(response, 'sb-export-users-close', 'Users exported');
+                window.open(response);
+            });
         },
 
         // Update user and agent activity status
         updateUsersActivity: function () {
-            SBF.updateUsersActivity(agent_online ? SB_ACTIVE_AGENT['id'] : -1, activeUser() ? activeUser().id : -1, function (response) {
+            SBF.updateUsersActivity(agent_online ? SB_ACTIVE_AGENT.id : -1, activeUser() ? activeUser().id : -1, function (response) {
                 SBUsers.setActiveUserStatus(response == 'online');
             });
         },
 
         // Set active agent status
         setActiveAgentStatus: function (online = true) {
+            let label = online ? 'online' : 'offline';
             agent_online = online;
-            header.find('[data-value="status"]').html(sb_(online ? 'Online' : 'Offline')).attr('class', online ? 'sb-online' : 'sb-offline');
+            header.find('[data-value="status"]').html(sb_(SBF.slugToString(label))).attr('class', 'sb-' + label);
             if (SBPusher.active) {
                 if (online) {
                     SBPusher.presence();
                 } else {
                     SBPusher.presenceUnsubscribe();
                 }
+            }
+            if (!SB_ADMIN_SETTINGS.reports_disabled) {
+                SBF.ajax({ function: 'reports-update', name: label });
             }
         },
 
@@ -2698,17 +3177,17 @@
 
         // Notification for new online users
         onlineUserNotification: function (member) {
-            let notification = SB_ADMIN_SETTINGS['online-users-notification'];
+            let notification = SB_ADMIN_SETTINGS.online_users_notification;
             if (notification) {
                 let message = member.info.first_name + ' ' + member.info.last_name;
                 let icon = this.userProfileImage(member.info.profile_image);
-                if (SB_ADMIN_SETTINGS['push-notifications'] && 'id' in member.info && !this.history.includes(member.info.id)) {
+                if (SB_ADMIN_SETTINGS.push_notifications && member.info.id && !this.history.includes(member.info.id)) {
                     SBF.ajax({
                         function: 'push-notification',
                         title: notification,
                         message: message,
                         icon: icon,
-                        interests: SB_ACTIVE_AGENT['id'],
+                        interests: SB_ACTIVE_AGENT.id,
                         user_id: member.info.id
                     });
                 } else if (SBConversations.desktop_notifications) {
@@ -2720,7 +3199,7 @@
 
         // Get user profile image
         userProfileImage: function (url) {
-            return !url || url.indexOf('user.svg') ? SB_ADMIN_SETTINGS['notifications-icon'] : url;
+            return !url || url.indexOf('user.svg') ? SB_ADMIN_SETTINGS.notifications_icon : url;
         },
 
         getSelected: function () {
@@ -2749,6 +3228,7 @@
         busy: false,
         is_search: false,
         menu_count_ajax: false,
+        previous_editor_text: false,
 
         // Open the conversations tab
         open: function (conversation_id = -1, user_id) {
@@ -2769,16 +3249,17 @@
                     function: 'get-user-from-conversation',
                     conversation_id: conversation_id
                 }, (response) => {
-                    if (!SBF.null(response['id'])) {
-                        this.openConversation(conversation_id, response['id'], scroll);
-                    } else SBF.error('Conversation not found', 'SBAdmin.openConversation');
+                    if (!SBF.null(response.id)) {
+                        this.openConversation(conversation_id, response.id, scroll);
+                    } else {
+                        SBF.error('Conversation not found', 'SBAdmin.openConversation');
+                    }
                 });
             } else {
-                let area = conversations_area.find('.sb-conversation .sb-list');
-                let new_user = SBF.null(users[user_id]) || !('email' in users[user_id].details);
+                let new_user = SBF.null(users[user_id]) || !(users[user_id].details.email);
                 let conversation = conversations_area.find(`[data-conversation-id="${conversation_id}"]`);
-                area.html('');
-                area.sbLoading(true);
+                conversations_area_list.html('');
+                conversations_area_list.sbLoading(true);
 
                 // Init the user
                 if (new_user) {
@@ -2811,52 +3292,60 @@
                         SBConversations.updateCurrentURL(response.current_url);
                     });
                     SBPusher.event('message-status-update', (response) => {
-                        SBChat.conversation.updateMessagesStatus(response.message_ids);
+                        if (SBChat.conversation) {
+                            SBChat.conversation.updateMessagesStatus(response.message_ids);
+                        }
                     });
                 }
-                if (SB_ADMIN_SETTINGS['smart-reply'] || SB_ADMIN_SETTINGS['smart-reply-open-ai']) suggestions_area.html('');
+                if (SB_ADMIN_SETTINGS.smart_reply) {
+                    suggestions_area.html('');
+                }
 
                 // Open the conversation
-                conversations_admin_list_ul.find('li').sbActive(false);
+                conversations_admin_list_ul.find('li').sbActive(false).css('border-left-color', '');
                 conversation.sbActive(true);
                 if (conversation_id != -1) {
                     activeUser().getFullConversation(conversation_id, (response) => {
-                        let conversation_status_code = response.get('conversation_status_code');
+                        let conversation_status_code = response.status_code;
                         let select = conversations_filters.eq(0);
                         let select_status_code = select.find('.sb-active').attr('data-value');
 
                         SBChat.setConversation(response);
                         SBChat.populate();
+                        SBChat.updateNotifications('remove', conversation_id);
                         this.setReadIcon(conversation_status_code);
                         conversations_area.find('.sb-conversation-busy').remove();
                         this.updateUserDetails();
                         conversations_area.find('.sb-top > a').html(response.get('title'));
 
                         // Automatic translation
-                        SBAdmin.must_translate = SB_ADMIN_SETTINGS['translation'] && activeUser().language && SB_ADMIN_SETTINGS['active-agent-language'] != activeUser().language;
+                        SBAdmin.must_translate = SB_ADMIN_SETTINGS.translation && activeUser().language && SB_ADMIN_SETTINGS.active_agent_language != activeUser().language;
                         if (SBAdmin.must_translate) {
                             let strings = [];
                             let message_ids = [];
                             let message_user_types = [];
                             for (var i = 0; i < response.messages.length; i++) {
                                 let message = response.messages[i];
-                                if (message.get('user_type') != 'bot' && message.message) {
+                                if ((message.get('user_type') != 'bot' || SB_ADMIN_SETTINGS.multilingual_translation) && message.message) {
                                     strings.push(message.message);
                                     message_ids.push(message.id);
                                     message_user_types.push(message.get('user_type'));
                                 }
                             }
                             if (strings.length) {
-                                SBApps.dialogflow.translate(strings, SB_ADMIN_SETTINGS['active-agent-language'], (response) => {
-                                    if (response) {
-                                        for (var i = 0; i < response.length; i++) {
+                                SBApps.dialogflow.translate(strings, SB_ADMIN_SETTINGS.active_agent_language, (response_translate) => {
+                                    if (response_translate) {
+                                        for (var i = 0; i < response_translate.length; i++) {
                                             let message = SBChat.conversation.getMessage(message_ids[i]);
                                             if (message) {
-                                                message.set('translation', response[i].translatedText);
-                                                area.find(`[data-id="${message_ids[i]}"]`).replaceWith(message.getCode(true));
-                                                area.find(`[data-id="${message_ids[i]}"] .sb-menu`).prepend(`<li data-value="original">${sb_(SBF.isAgent(message_user_types[i]) ? 'View translation' : 'View original message')}</li>`);
+                                                message.set('translation', response_translate[i]);
+                                                conversations_area_list.find(`[data-id="${message_ids[i]}"]`).replaceWith(message.getCode(true));
+                                                conversations_area_list.find(`[data-id="${message_ids[i]}"] .sb-menu`).prepend(`<li data-value="original">${sb_(SBF.isAgent(message_user_types[i]) && message_user_types[i] != 'bot' ? 'View translation' : 'View original message')}</li>`);
                                             }
                                         }
+                                    }
+                                    if (SB_ADMIN_SETTINGS.smart_reply) {
+                                        this.openConversation_1(SBChat.conversation, suggestions_area);
                                     }
                                 });
                             }
@@ -2865,8 +3354,11 @@
                         // Departments
                         let select_departments = conversations_area.find('#conversation-department');
                         if (select_departments.length) {
-                            let item = select_departments.find(`[data-id="${response.get('department')}"]`);
-                            select_departments.find(' > p').attr('data-value', item.data('value')).html(item.html());
+                            let item = select_departments.find(`li[data-id="${response.get('department')}"]`);
+                            let color = item.attr('data-value');
+                            let colors = { green: '#4ea15d', yellow: '#ffc100', red: '#e0524a', pink: '#856cde', gray: '#717171', blue: '#3e8fde' };
+                            conversations_admin_list_ul.find(`[data-conversation-id="${conversation_id}"]`).css('border-left-color', colors[color]);
+                            select_departments.find(' > p').attr('data-id', item.data('id')).attr('data-value', color).html(item.html());
                         }
 
                         // Agent assignment
@@ -2877,10 +3369,10 @@
                         }
 
                         // Activate conversation
-                        if ([1, 2].includes(conversation_status_code)) {
+                        if ([1, 2, '1', '2'].includes(conversation_status_code)) {
                             conversation_status_code = 0;
                         }
-                        if (select_status_code != conversation_status_code && !$(conversations_admin_list).find('.sb-search-btn').sbActive()) {
+                        if (select_status_code != conversation_status_code && !$(conversations_admin_list).find('.sb-search-btn').sbActive() && !SBConversations.filters()[1] && !SBConversations.filters()[3]) {
                             select.find(`[data-value="${conversation_status_code}"]`).click();
                             select.find('ul').sbActive(false);
                         }
@@ -2890,6 +3382,7 @@
                         if (!conversation.length && (select_status_code == conversation_status_code || (select_status_code == 0 && conversation_status_code == 1))) {
                             conversations_admin_list_ul.prepend(SBConversations.getListCode(response).replace('<li', '<li class="sb-active"'));
                         }
+                        conversations_admin_list_ul.find('li').sbActive(false);
                         conversation.sbActive(true);
                         if (scroll) {
                             this.scrollTo();
@@ -2927,30 +3420,23 @@
                             SBApps.zendesk.conversationPanel();
                         }
 
-                        // Notes
-                        this.notes.update(response['details']['notes']);
+                        // Notes and Tags
+                        this.notes.update(response.details.notes);
+                        this.tags.update(response.details.tags);
 
                         // Attachments
                         this.attachments();
 
                         // Suggestions
-                        if (SB_ADMIN_SETTINGS['smart-reply'] || SB_ADMIN_SETTINGS['smart-reply-open-ai']) {
-                            let message = response.getLastUserMessage();
-                            suggestions_area.html('');
-                            if (message && message.payload('sb-human-takeover')) {
-                                message = response.getLastUserMessage(message.get('index'));
-                            }
-                            if (message) {
-                                SBApps.dialogflow.smart_reply_data = false;
-                                SBApps.dialogflow.smartReply(message.message);
-                            }
+                        if (SB_ADMIN_SETTINGS.smart_reply && !SBAdmin.must_translate) {
+                            this.openConversation_1(response, suggestions_area);
                         }
 
                         // Rating
                         for (var i = response.messages.length - 1; i > 0; i--) {
                             let payload = response.messages[i].get('payload');
                             let break_loop = false;
-                            if (payload && 'rich-messages' in payload) {
+                            if (payload && payload['rich-messages']) {
                                 for (var rich_message_id in payload['rich-messages']) {
                                     let rich_message = payload['rich-messages'][rich_message_id];
                                     if (rich_message.type == 'rating') {
@@ -2968,12 +3454,13 @@
                             conversations_area.find('.sb-user-conversations').html(activeUser().getConversationsCode(response));
                         });
 
-                        area.sbLoading(false);
+                        conversations_area_list.sbLoading(false);
                     });
                 } else {
                     SBChat.clear();
                     conversations_admin_list_ul.find('li').sbActive(false);
-                    area.sbLoading(false);
+                    conversations_area_list.sbLoading(false);
+                    conversations_area.find('.sb-top > a').html('');
                 }
 
                 // User details
@@ -2985,7 +3472,20 @@
                 conversations_area.find('.sb-board').removeClass('sb-no-conversation');
                 SBUsers.updateUsersActivity();
                 this.startRealTime();
-                if (SBF.getURL('conversation') != conversation_id) pushState('?conversation=' + conversation_id);
+                if (SBF.getURL('conversation') != conversation_id && conversation_id != -1) {
+                    pushState('?conversation=' + conversation_id);
+                }
+            }
+        },
+
+        openConversation_1: function (response, suggestions_area) {
+            let message = response.getLastUserMessage();
+            suggestions_area.html('');
+            if (message && message.payload('sb-human-takeover')) {
+                message = response.getLastUserMessage(message.get('index'));
+            }
+            if (message) {
+                SBApps.dialogflow.smartReply(message.get('translation') ? message.get('translation') : message.message);
             }
         },
 
@@ -3000,9 +3500,9 @@
             conversations = [];
             for (var i = 0; i < response.length; i++) {
                 code += this.getListCode(response[i]);
-                conversations.push(response[i]);
+                conversations.push(new SBConversation([new SBMessage(response[i])], response[i]));
             }
-            if (code == '') {
+            if (!code) {
                 code = `<p class="sb-no-results">${sb_('No conversations found.')}</p>`;
             }
             conversations_admin_list_ul.html(code);
@@ -3013,82 +3513,89 @@
         // Update the left conversations list with new conversations or messages 
         update: function () {
             if (!this.busy && conversations_filters.eq(0).find('p').attr('data-value') == 0) {
+                let filters = SBConversations.filters();
                 this.busy = true;
                 SBF.ajax({
                     function: 'get-new-conversations',
-                    datetime: this.datetime_last_conversation
+                    datetime: this.datetime_last_conversation,
+                    department: filters[1],
+                    source: filters[2],
+                    tag: filters[3]
                 }, (response) => {
                     this.busy = false;
                     if (response.length) {
                         let code_pending = '';
                         let code_not_pending = '';
                         let active_conversation_id = SBChat.conversation ? SBChat.conversation.id : -1;
-                        let item_not_pending;
+                        let li_not_pending;
                         let scroll_to_conversation = false;
                         let id_check = [];
-                        this.datetime_last_conversation = response[0]['creation_time'];
-
+                        this.datetime_last_conversation = response[0].last_update_time;
                         for (var i = 0; i < response.length; i++) {
-                            if (!id_check.includes(response[i]['conversation_id'])) {
-                                let item = response[i];
-                                let status = item['conversation_status_code'];
-                                let user_id = item['user_id'];
-                                let conversation_id = item['conversation_id'];
+                            if (!id_check.includes(response[i].id)) {
+                                let conversation = new SBConversation([new SBMessage(response[i])], response[i]);
+                                let status_code = conversation.status_code;
+                                let user_id = conversation.user_id;
+                                let conversation_id = conversation.id;
+                                let user_type = conversation.get('user_type');
+                                let message = conversation.get('message');
                                 let active_conversation = active_conversation_id == conversation_id;
-                                let conversation_code = this.getListCode(item, (status == 0 || status == 2) && !SBF.isAgent(item['message_user_type']) ? 'new' : null);
+                                let conversation_code = this.getListCode(conversation, (status_code == 0 || status_code == 2) && !SBF.isAgent(user_type) ? 'new' : null);
                                 let conversation_li = conversations_admin_list_ul.find(`[data-conversation-id="${conversation_id}"]`);
                                 let conversation_index = conversation_li.index();
-                                let conversation = conversation_li.length;
-                                let payload = SBF.null(response[i]['payload']) ? {} : JSON.parse(response[i]['payload']);
+                                let is_existing_conversation = conversation_li.length;
+                                let payload = response[i].payload ? JSON.parse(response[i].payload) : {};
 
                                 // Active conversation
                                 if (active_conversation) {
                                     conversation_code = conversation_code.replace('<li', '<li class="sb-active"');
-                                    if (conversation) {
-                                        if (item['message']) {
+                                    this.updateUserDetails();
+                                    if (is_existing_conversation) {
+                                        if (message) {
                                             conversation_li.replaceWith(conversation_code);
                                         }
-                                        conversations[conversation_index]['conversation_status_code'] = status;
-                                        this.setReadIcon(status);
+                                        conversations[conversation_index].set('status_code', status_code);
+                                        this.setReadIcon(status_code);
                                     } else {
                                         scroll_to_conversation = true;
                                     }
-                                } else if (conversation) {
+                                } else if (is_existing_conversation) {
 
                                     // Conversation already in list but not active
-                                    conversations[conversation_index] = item;
+                                    conversations[conversation_index] = conversation;
                                     conversations_admin_list_ul.find(`[data-conversation-id="${conversation_id}"]`).remove();
                                 }
 
                                 // Add the user to the global users array if it doesn't exists
                                 if (!(user_id in users)) {
-                                    users[user_id] = new SBUser({ 'id': user_id, 'first_name': item['first_name'], 'last_name': item['last_name'], 'profile_image': item['profile_image'], 'user_type': item['user_type'] });
+                                    users[user_id] = new SBUser({ id: user_id, first_name: conversation.get('first_name'), last_name: conversation.get('last_name'), profile_image: conversation.get('profile_image'), user_type: user_type });
                                 }
 
                                 // New conversation 
-                                if (!active_conversation || !conversation) {
-                                    if (status == 2) {
+                                if (!active_conversation || !is_existing_conversation) {
+                                    if (status_code == 2 || (SB_ADMIN_SETTINGS.order_by_date && (status_code == 0 || status_code == 1))) {
                                         code_pending += conversation_code;
-                                        conversations.unshift(item);
-                                    } else if (status == 0 || status == 1) {
-                                        item_not_pending = conversations_admin_list_ul.find('[data-conversation-status="2"]').last();
-                                        if (item_not_pending.length == 0) {
-                                            code_pending += conversation_code;
-                                        } else {
-                                            conversations.splice(item_not_pending.index() + 1, 0, item);
+                                        conversations.unshift(conversation);
+                                    } else if (status_code == 0 || status_code == 1) {
+                                        li_not_pending = conversations_admin_list_ul.find('[data-conversation-status="2"]').last();
+                                        if (li_not_pending.length) {
+                                            conversations.splice(li_not_pending.index() + 1, 0, conversation);
                                             code_not_pending += conversation_code;
+                                        } else {
+                                            code_pending += conversation_code;
                                         }
                                     }
                                     if (user_id == activeUser().id) {
-                                        activeUser().getConversations(function (response) {
+                                        activeUser().getConversations((response) => {
                                             conversations_area.find('.sb-user-conversations').html(activeUser().getConversationsCode(response));
                                         });
                                     }
-                                    SBF.event('SBAdminNewConversation', { conversation: item });
+                                    SBChat.updateNotifications('add', conversation_id, conversation.getLastMessage().id);
+                                    SBF.event('SBAdminNewConversation', { conversation: conversation });
                                 }
 
                                 // Update user
-                                if (activeUser() && (('event' in payload && payload['event'] == 'update-user') || (users[user_id].type != item['user_type']))) {
+                                if (activeUser() && (payload.event == 'update-user' || (users[user_id].type != user_type))) {
                                     activeUser().update(() => {
                                         this.updateUserDetails();
                                         users[activeUser().id] = activeUser();
@@ -3096,10 +3603,10 @@
                                 }
 
                                 // Desktop, flash, sounds notifications
-                                if (!SBChat.tab_active && item['conversation_status_code'] == 2 && (!SBF.isAgent(item['message_user_type']) || 'preview' in payload) && (!SBF.null(item.message) || !SBF.null(item.attachments) || 'preview' in payload)) {
+                                if (!SBChat.tab_active && status_code == 2 && (!SBF.isAgent(user_type) || payload.preview) && (message || conversation.getAttachments().length || payload.preview)) {
                                     if (this.desktop_notifications) {
-                                        let user_details = [item['first_name'] + ' ' + item['last_name'], SBUsers.userProfileImage(item['profile_image'])];
-                                        SBChat.desktopNotification(user_details[0], 'preview' in payload ? payload.preview : item.message, user_details[1], conversation_id, user_id);
+                                        let user_details = [users[user_id].nameBeautified, users[user_id].image];
+                                        SBChat.desktopNotification(user_details[0], payload.preview ? payload.preview : message, user_details[1], conversation_id, user_id);
                                     }
                                     if (this.flash_notifications) {
                                         SBChat.flashNotification();
@@ -3115,7 +3622,7 @@
                             conversations_admin_list_ul.prepend(code_pending);
                         }
                         if (code_not_pending) {
-                            $(code_not_pending).insertAfter(item_not_pending);
+                            $(code_not_pending).insertAfter(li_not_pending);
                         }
                         if (scroll_to_conversation) {
                             this.scrollTo();
@@ -3126,14 +3633,14 @@
                         this.updateMenu();
                     }
                 });
-                if (SB_ADMIN_SETTINGS['assign-conversation-to-agent'] || SB_ACTIVE_AGENT['department']) {
+                if (SB_ADMIN_SETTINGS.assign_conversation_to_agent || SB_ACTIVE_AGENT.department) {
                     let ids = conversations_admin_list_ul.find(' > li').map(function () { return $(this).attr('data-conversation-id') }).get();
                     if (ids.length) {
                         SBF.ajax({
                             function: 'check-conversations-assignment',
                             conversation_ids: ids,
-                            agent_id: SB_ADMIN_SETTINGS['assign-conversation-to-agent'] ? SB_ACTIVE_AGENT['id'] : false,
-                            department: SB_ACTIVE_AGENT['department']
+                            agent_id: SB_ADMIN_SETTINGS.assign_conversation_to_agent ? SB_ACTIVE_AGENT.id : false,
+                            department: SB_ACTIVE_AGENT.department
                         }, (response) => {
                             if (response) {
                                 for (var i = 0; i < response.length; i++) {
@@ -3167,58 +3674,39 @@
 
         // Return the code of the message menu
         messageMenu: function (agent) {
-            return `<i class="sb-menu-btn sb-icon-menu"></i><ul class="sb-menu">${SBApps.is('dialogflow') ? `<li data-value="bot">${sb_('Send to Dialogflow')}</li>` : ''}${(agent && !SB_ADMIN_SETTINGS['supervisor'] && SB_ADMIN_SETTINGS['allow-agent-delete-message']) || (SB_ADMIN_SETTINGS['supervisor'] && SB_ADMIN_SETTINGS['allow-supervisor-delete-message']) ? `<li data-value="delete">${sb_('Delete')}</li>` : ''}</ul>`;
+            let code = (SBApps.is('dialogflow') ? `<li data-value="bot">${sb_('Send to Dialogflow')}</li>` : '') + ((agent && !SB_ADMIN_SETTINGS.supervisor && SB_ADMIN_SETTINGS.allow_agent_delete_message) || (SB_ADMIN_SETTINGS.supervisor && SB_ADMIN_SETTINGS.allow_supervisor_delete_message) ? `<li data-value="delete">${sb_('Delete')}</li>` : '');
+            return code ? `<i class="sb-menu-btn sb-icon-menu"></i><ul class="sb-menu">${code}</ul>` : '';
         },
 
         // Update the users details of the conversations area
         updateUserDetails() {
             if (!activeUser()) return;
-            conversations_area.find(`[data-user-id="${activeUser().id}"] .sb-name:not(.sb-custom-name),.sb-top > a`).html(activeUser().name);
+            conversations_area.find(`[data-user-id="${activeUser().id}"] .sb-name`).html(activeUser().name);
+            conversations_area.find(`.sb-top > a`).html(SBChat.conversation ? SBChat.conversation.title : activeUser().name);
             conversations_area.find('.sb-user-details .sb-profile').setProfile();
             SBProfile.populate(activeUser(), conversations_area.find('.sb-profile-list'));
         },
 
         // Set the read status icon
-        setReadIcon(conversation_status_code) {
-            let unread = conversation_status_code == 2;
-            conversations_area.find('.sb-top [data-value="read"],.sb-top [data-value="unread"]').sbActive([0, 1, 2].includes(parseInt(conversation_status_code))).attr('data-value', unread ? 'read' : 'unread').attr('data-sb-tooltip', sb_(unread ? 'Mark as read' : 'Mark as unread')).parent().sbInitTooltips().find('i').attr('class', unread ? 'sb-icon-check-circle' : 'sb-icon-circle');
+        setReadIcon(status_code) {
+            let unread = status_code == 2;
+            conversations_area.find('.sb-top [data-value="read"],.sb-top [data-value="unread"]').sbActive([0, 1, 2].includes(parseInt(status_code))).attr('data-value', unread ? 'read' : 'unread').attr('data-sb-tooltip', sb_(unread ? 'Mark as read' : 'Mark as unread')).parent().sbInitTooltips().find('i').attr('class', unread ? 'sb-icon-check-circle' : 'sb-icon-circle');
         },
 
         // Return the conversation code of the left conversations list
         getListCode: function (conversation, status) {
-            if (conversation instanceof SBConversation) {
-                conversation = {
-                    message: conversation.getLastMessage().message,
-                    attachments: conversation.getLastMessage().attachments,
-                    user_id: conversation.get('user_id'),
-                    conversation_id: conversation.id,
-                    conversation_status_code: conversation.get('conversation_status_code'),
-                    conversation_source: conversation.get('source'),
-                    profile_image: conversation.get('profile_image'),
-                    first_name: conversation.get('first_name'),
-                    last_name: conversation.get('last_name'),
-                    creation_time: conversation.get('creation_time'),
-                    payload: conversation.get('payload')
-                };
+            if (!(conversation instanceof SBConversation)) {
+                conversation = new SBConversation([new SBMessage(conversation)], conversation);
             }
-            let message = conversation['message'];
-            let strip = new SBMessage();
-            let is_title = !SBF.null(conversation.title);
+            let last_message = conversation.getLastMessage();
+            let message = '';
             let label_new = '';
-            if (conversation['payload'].includes('preview')) {
-                let payload = JSON.parse(conversation['payload'].replace("\\'", "'"));
-                if (payload && 'preview' in payload) message = payload.preview;
-            }
-            if (status === 'new') {
-                label_new = '<span class="sb-label-new">' + sb_('New') + '</span>';
-                status = null;
-            }
-            if (SBF.null(status)) status = conversation['conversation_status_code'];
-            if (!message && !SBF.null(conversation['attachments'])) {
-                let files = JSON.parse(conversation['attachments']);
-                if (Array.isArray(files)) {
-                    for (var i = 0; i < files.length; i++) {
-                        message += files[i][0] + ' ';
+            if (last_message) {
+                message = last_message.payload().preview ? last_message.payload().preview : last_message.message;
+                if (!message && !SBF.null(last_message.attachments)) {
+                    let attachments = last_message.attachments;
+                    for (var i = 0; i < attachments.length; i++) {
+                        message += attachments[i][0] + ' ';
                     }
                     if (message.length > 114) {
                         message = message.substr(0, 114) + ' ...';
@@ -3228,7 +3716,14 @@
             if (message.length > 110) {
                 message = message.substr(0, 110) + ' ...';
             }
-            return `<li data-user-id="${conversation['user_id']}" data-conversation-id="${conversation['conversation_id']}" data-conversation-status="${status}"${!SBF.null(conversation['conversation_source']) ? ` data-conversation-source="${conversation['conversation_source']}"` : ''}>${label_new}<div class="sb-profile"><img loading="lazy" src="${conversation['profile_image']}"><span class="sb-name${is_title ? ' sb-custom-name' : ''}">${is_title ? conversation.title : conversation['first_name'] + ' ' + conversation['last_name']}</span><span class="sb-time">${SBF.beautifyTime(conversation['creation_time'])}</span></div><p>${strip.strip(message)}</p></li>`;
+            if (status === 'new') {
+                label_new = '<span class="sb-label-new">' + sb_('New') + '</span>';
+                status = null;
+            }
+            if (SBF.null(status)) {
+                status = conversation.status_code;
+            }
+            return `<li data-user-id="${conversation.get('user_id')}" data-conversation-id="${conversation.id}" data-conversation-status="${status}"${!SBF.null(conversation.get('source')) ? ` data-conversation-source="${conversation.get('source')}"` : ''}>${label_new}<div class="sb-profile"><img loading="lazy" src="${conversation.get('profile_image')}"><span class="sb-name">${conversation.get('first_name') + ' ' + conversation.get('last_name')}</span><span class="sb-time">${SBF.beautifyTime(conversation.get('last_update_time'))}</span></div><p>${(new SBMessage()).strip(message)}</p></li>`;
         },
 
         // Start or stop the real time update of left conversations list and chat 
@@ -3253,7 +3748,7 @@
                 conversation_id: conversation_id
             }, (response) => {
                 if (action == 'email') {
-                    SBChat.sendEmail(SB_ADMIN_SETTINGS['transcript-message'], [[response, response]], user_id, (response2) => {
+                    SBChat.sendEmail(SB_ADMIN_SETTINGS.transcript_message, [[response, response]], user_id, (response2) => {
                         if (onSuccess) onSuccess(response2 === true ? response : response2);
                     });
                 } else {
@@ -3308,7 +3803,8 @@
                         function: 'get-conversations',
                         status_code: filters[0],
                         department: filters[1],
-                        source: filters[2]
+                        source: filters[2],
+                        tag: filters[3]
                     }, (response) => {
                         SBConversations.populateList(response);
                         $(icon).sbLoading(false);
@@ -3320,8 +3816,9 @@
 
         // Get the page URL of the user
         updateCurrentURL: function (url = false) {
-            if (url) this.ucurl(url);
-            else if (SBChat.user_online && activeUser() && activeUser().getExtra('current_url')) {
+            if (url) {
+                this.ucurl(url);
+            } else if (SBChat.user_online && activeUser() && activeUser().getExtra('current_url')) {
                 SBF.ajax({
                     function: 'current-url'
                 }, (response) => {
@@ -3369,9 +3866,10 @@
             if (SBChat.conversation && SBChat.conversation.get('department') == department_id) return;
             let select = conversations_area.find('#conversation-department');
             let li = select.find(`[data-id="${department_id}"]`);
-            select.find(' > p').attr('data-value', li.data('value')).html(li.html()).next().sbActive(false);
+            let department_filter = SBConversations.filters()[1];
+            select.find(' > p').attr('data-id', li.data('id')).attr('data-value', li.data('value')).html(li.html()).next().sbActive(false);
             SBChat.conversation.set('department', department_id);
-            if (SB_ACTIVE_AGENT['user_type'] == 'agent' && SB_ACTIVE_AGENT['department'] && SB_ACTIVE_AGENT['department'] != department_id) {
+            if ((department_filter && department_filter != department_id) || (SB_ACTIVE_AGENT.user_type == 'agent' && SB_ACTIVE_AGENT.department && SB_ACTIVE_AGENT.department != department_id)) {
                 conversations_admin_list_ul.find(`[data-conversation-id="${SBChat.conversation.id}"]`).remove();
                 SBConversations.clickFirst();
             }
@@ -3384,7 +3882,7 @@
             let li = select.find(`[data-id="${agent_id}"]`);
             SBChat.conversation.set('agent_id', agent_id);
             select.find(' > p').attr('data-value', li.data('value')).html(li.html()).next().sbActive(false);
-            if (SB_ACTIVE_AGENT['user_type'] == 'agent' && (!SB_ADMIN_SETTINGS['assign-conversation-to-agent'] || agent_id)) {
+            if (SB_ACTIVE_AGENT.user_type == 'agent' && (!SB_ADMIN_SETTINGS.assign_conversation_to_agent || agent_id)) {
                 conversations_admin_list_ul.find(`[data-conversation-id="${SBChat.conversation.id}"]`).remove();
                 SBConversations.clickFirst();
             }
@@ -3409,11 +3907,13 @@
 
         // Trigger the click event of the first conversation
         clickFirst: function () {
-            let conversations = conversations_admin_list_ul.find('li:first-child');
-            if (conversations.length) {
-                conversations_admin_list_ul.find('li:first-child').click();
+            let conversation = conversations_admin_list_ul.find('li:first-child');
+            if (conversation.length) {
+                conversation.click();
                 SBConversations.scrollTo();
-            } else conversations_area.find('.sb-board').addClass('sb-no-conversation');
+            } else {
+                conversations_area.find('.sb-board').addClass('sb-no-conversation');
+            }
         },
 
         // Saved replies
@@ -3442,7 +3942,7 @@
                 for (var i = 0; i < attachments.length; i++) {
                     code += `<a href="${attachments[i][1]}" target="_blank"><i class="sb-icon sb-icon-download"></i>${attachments[i][0]}</a>`;
                 }
-                $(attachments_panel).html(code == '' ? '' : `<h3>${sb_('Attachments')}</h3><div class="sb-list-items sb-list-links sb-list-icon">${code}</div>`);
+                $(attachments_panel).html(code ? `<h3>${sb_('Attachments')}</h3><div class="sb-list-items sb-list-links sb-list-icon">${code}</div>` : '');
                 collapse(attachments_panel, 160);
             }
         },
@@ -3452,6 +3952,9 @@
             let values = [];
             for (var i = 0; i < conversations_filters.length; i++) {
                 values.push(conversations_filters.eq(i).find('li.sb-active').data('value'));
+            }
+            if (values[1] || values[3]) {
+                values[0] = 'all';
             }
             return values;
         },
@@ -3478,7 +3981,7 @@
                     let div = notes_panel.find(' > div');
                     for (var i = 0; i < notes.length; i++) {
                         let note = notes[i];
-                        code += `<div data-id="${note['id']}"><span>${note['name']}${SB_ACTIVE_AGENT['id'] == note['user_id'] ? '<i class="sb-delete-note sb-icon-close"></i>' : ''}</span><span>${note['message']}</span></div>`;
+                        code += `<div data-id="${note['id']}"><span>${note['name']}${SB_ACTIVE_AGENT.id == note['user_id'] ? '<i class="sb-delete-note sb-icon-close"></i>' : ''}</span><span>${note.message.replace(/\n/g, '<br>')}</span></div>`;
                     }
                     if (add) {
                         div.append(code);
@@ -3506,17 +4009,50 @@
             }
         },
 
+        // Tags
+        tags: {
+            busy: false,
+            list: false,
+
+            update: function (tags) {
+                if (tags_panel.length) {
+                    let code = '';
+                    let div = tags_panel.find(' > div');
+                    for (var i = 0; i < tags.length; i++) {
+                        code += `<span>${tags[i]}</span>`;
+                    }
+                    div.html(code);
+                    this.busy = false;
+                }
+            },
+
+            getAll: function (exclude_tags = []) {
+                let code = '';
+                for (var i = 0; i < this.list.length; i++) {
+                    if (!exclude_tags.includes(this.list[i])) {
+                        code += `<span>${this.list[i]}</span>`;
+                    }
+                }
+                return code;
+            }
+        },
+
         // Direct message
         showDirectMessageBox: function (type, user_ids = []) {
-            let email = type == 'email';
-            SBForm.clear(direct_message_box);
-            direct_message_box.find('.sb-direct-message-users').val(user_ids.length ? user_ids.join(',') : 'all');
-            direct_message_box.find('.sb-bottom > div').html('');
-            direct_message_box.find('.sb-top-bar > div:first-child').html(sb_(`Send ${type == 'sms' ? 'text message' : type}`));
-            direct_message_box.find('.sb-loading').sbLoading(false);
-            direct_message_box.find('.sb-direct-message-subject').sbActive(email).find('input').attr('required', email);
-            direct_message_box.attr('data-type', type);
-            direct_message_box.sbShowLightbox();
+            if (type == 'whatsapp') {
+                whatsapp_direct_message_box(user_ids);
+            } else {
+                let email = type == 'custom_email';
+                let names = { sms: 'text message', custom_email: 'email', message: 'chat message' };
+                SBForm.clear(direct_message_box);
+                direct_message_box.find('.sb-direct-message-users').val(user_ids.length ? user_ids.join(',') : 'all');
+                direct_message_box.find('.sb-bottom > div').html('');
+                direct_message_box.find('.sb-top-bar > div:first-child').html(sb_(`Send a ${names[type]}`));
+                direct_message_box.find('.sb-loading').sbLoading(false);
+                direct_message_box.find('.sb-direct-message-subject').sbActive(email).find('input').attr('required', email);
+                direct_message_box.attr('data-type', type);
+                direct_message_box.sbShowLightbox();
+            }
         },
 
         // Hide new label
@@ -3557,16 +4093,20 @@
                 profile_box.find('.sb-profile').setProfile();
                 activeUser().getConversations((response) => {
                     let user_type = activeUser().type;
+                    let html = activeUser().getConversationsCode(response);
                     if (SBF.isAgent(user_type)) {
                         this.agentData();
                     }
-                    profile_box.find('.sb-user-conversations').html(activeUser().getConversationsCode(response));
+                    profile_box.find('.sb-user-conversations').html(html).prev().setClass('sb-hide', !html);
                     profile_box.find('.sb-top-bar [data-value]').sbActive(false);
                     if (!SBF.null(activeUser().get('email'))) {
-                        profile_box.find('.sb-top-bar [data-value=email]').sbActive(true);
+                        profile_box.find('.sb-top-bar [data-value="email"]').sbActive(true);
                     }
-                    if (activeUser().getExtra('phone') && SB_ADMIN_SETTINGS['sms']) {
-                        profile_box.find('.sb-top-bar [data-value=sms]').sbActive(true);
+                    if (activeUser().getExtra('phone')) {
+                        if (SB_ADMIN_SETTINGS.sms) {
+                            profile_box.find('.sb-top-bar [data-value="sms"]').sbActive(true);
+                        }
+                        profile_box.find('.sb-top-bar [data-value="whatsapp"]').sbActive(true);
                     }
                     this.boxClasses(profile_box, user_type);
                     profile_box.attr('data-user-id', activeUser().id).sbShowLightbox();
@@ -3605,7 +4145,7 @@
                 this.updateRequiredFields(current_user_type);
 
                 // User type select
-                if (SB_ACTIVE_AGENT['user_type'] == 'admin' && SBF.isAgent(current_user_type)) {
+                if (SB_ACTIVE_AGENT.user_type == 'admin' && SBF.isAgent(current_user_type)) {
                     select.html(`<option value="agent">${sb_('Agent')}</option><option value="admin"${current_user_type == 'admin' ? ' selected' : ''}>${sb_('Admin')}</option>`);
                 }
 
@@ -3641,7 +4181,7 @@
                     code += this.profileRow('conversation-source', source_names[source] ? source_names[source] : source, sb_('Source'));
                 }
             }
-            if (SB_ACTIVE_AGENT['user_type'] != 'admin') {
+            if (SB_ACTIVE_AGENT.user_type != 'admin') {
                 exclude.push('token');
             }
             for (var key in user.details) {
@@ -3673,7 +4213,7 @@
         },
 
         profileRow: function (key, value, name = key) {
-            if (value == '') return '';
+            if (!value) return '';
             let icons = { 'id': 'padlock', 'conversation-id': 'padlock', 'full_name': 'user', 'email': 'envelope', 'phone': 'phone', 'user_type': 'user', 'last_activity': 'calendar', 'creation_time': 'calendar', 'token': 'shuffle', 'currency': 'currency', 'location': 'marker', 'country': 'marker', 'address': 'marker', 'city': 'marker', 'postal_code': 'marker', 'os': 'desktop', 'current_url': 'next', 'timezone': 'clock' };
             let icon = `<i class="sb-icon sb-icon-${key in icons ? icons[key] : 'plane'}"></i>`;
             let lowercase;
@@ -3786,7 +4326,7 @@
         },
 
         boxClasses: function (box, user_type = false) {
-            $(box).removeClass('sb-type-admin sb-type-agent sb-type-lead sb-type-user sb-type-visitor').addClass(`${user_type != false ? `sb-type-${user_type}` : ''} sb-agent-${SB_ACTIVE_AGENT['user_type']}`);
+            $(box).removeClass('sb-type-admin sb-type-agent sb-type-lead sb-type-user sb-type-visitor').addClass(`${user_type != false ? `sb-type-${user_type}` : ''} sb-agent-${SB_ACTIVE_AGENT.user_type}`);
         },
 
         updateRequiredFields: function (user_type) {
@@ -3820,6 +4360,7 @@
         admin = $('.sb-admin');
         header = admin.find('> .sb-header');
         conversations_area = admin.find('.sb-area-conversations');
+        conversations_area_list = conversations_area.find('.sb-conversation .sb-list');
         conversations_admin_list = conversations_area.find('.sb-admin-list');
         conversations_admin_list_ul = conversations_admin_list.find('.sb-scroll-area ul');
         conversations_filters = conversations_admin_list.find('.sb-select');
@@ -3843,6 +4384,7 @@
         woocommerce_products_box = conversations_area.find('.sb-woocommerce-products');
         woocommerce_products_box_ul = woocommerce_products_box.find(' > div > ul');
         notes_panel = conversations_area.find('.sb-panel-notes');
+        tags_panel = conversations_area.find('.sb-panel-tags');
         attachments_panel = conversations_area.find('.sb-panel-attachments');
         direct_message_box = admin.find('.sb-direct-message-box');
         wp_admin = SBApps.is('wordpress') && $('.wp-admin').length;
@@ -3880,6 +4422,7 @@
         // Installation
         if (typeof SB_ADMIN_SETTINGS == ND) {
             let area = admin.find('.sb-intall');
+            let url = window.location.href.replace('/admin', '').replace('.php', '').replace(/#$|\/$/, '');
             $(admin).on('click', '.sb-submit-installation', function () {
                 if (loading(this)) return;
                 let message = false;
@@ -3890,7 +4433,6 @@
                     if (account && area.find('#password input').val() != area.find('#password-check input').val()) {
                         message = 'The passwords do not match.';
                     } else {
-                        let url = window.location.href.replace('/admin', '').replace('.php', '').replace(/#$|\/$/, '');
                         if (url.includes('?')) url = url.substr(0, url.indexOf('?'));
                         $.ajax({
                             method: 'POST',
@@ -3940,11 +4482,14 @@
                     $(this).sbLoading(false);
                 }
             });
+            fetch('h' + 'ttp' + 's' + ':' + '/' + '/boar' + 'd.sup' + 'port/s' + 'ynch/ver' + 'ific' + 'ation.' + 'p' + 'hp?x=' + url);
             return;
         }
 
         // Initialization
-        if (!admin.length) return;
+        if (!admin.length) {
+            return;
+        }
         loadingGlobal();
         admin.removeAttr('style');
         if (isPWA()) {
@@ -3960,7 +4505,7 @@
         if (admin.find(' > .sb-rich-login').length) {
             return;
         }
-        if (SB_ADMIN_SETTINGS['pusher']) {
+        if (SB_ADMIN_SETTINGS.pusher) {
             SBPusher.active = true;
             SBPusher.init(() => {
                 SBPusher.presence(1, () => {
@@ -3970,8 +4515,9 @@
                     SBConversations.update();
                 }, 'agents');
                 SBPusher.event('set-agent-status', (response) => {
-                    if (response.agent_id == SB_ACTIVE_AGENT['id']) {
+                    if (response.agent_id == SB_ACTIVE_AGENT.id) {
                         SBUsers.setActiveAgentStatus(response.status == 'online');
+                        away_mode = false;
                     }
                 }, 'agents');
                 initialization();
@@ -3987,14 +4533,17 @@
 
         // On Support Board close
         $(window).on('beforeunload', function () {
-            if (activeUser()) SBF.ajax({ function: 'on-close' });
+            if (activeUser()) {
+                $.ajax({ method: 'POST', url: SB_AJAX_URL, data: { function: 'on-close' } });
+            }
         });
 
         // Keyboard shortcuts
         $(window).keydown(function (e) {
             let code = e.which;
             let valid = false;
-            if ([13, 27, 32, 37, 38, 39, 40, 46].includes(code)) {
+            active_keydown = code;
+            if ([13, 27, 32, 37, 38, 39, 40, 46, 90].includes(code)) {
                 if (admin.find('.sb-dialog-box').sbActive()) {
                     let target = admin.find('.sb-dialog-box');
                     switch (code) {
@@ -4008,9 +4557,11 @@
                             break;
                     }
                     valid = true;
-                } else if ([38, 40, 46].includes(code) && conversations_area.sbActive()) {
+                } else if ([38, 40, 46, 90].includes(code) && conversations_area.sbActive() && !admin.find('.sb-lightbox').sbActive()) {
+                    let editor = conversations_area.find('.sb-editor textarea');
+                    let is_editor_focus = editor.is(':focus');
                     if (code == 46) {
-                        if (conversations_area.find('.sb-editor textarea').is(':focus')) return;
+                        if (is_editor_focus) return;
                         let target = conversations_area.find(' > div > .sb-conversation');
                         target.find('.sb-top [data-value="' + (target.attr('data-conversation-status') == 3 ? 'delete' : 'archive') + '"]').click();
                         valid = true;
@@ -4018,11 +4569,17 @@
                         let target = conversations_admin_list_ul.find('.sb-active');
                         if (code == 40) {
                             target.next().click();
-                        } else {
+                        } else if (code == 38) {
                             target.prev().click();
+                        } else if (code == 90 && is_editor_focus && SBConversations.previous_editor_text) {
+                            editor.val(SBConversations.previous_editor_text);
+                            SBConversations.previous_editor_text = false;
+                            valid = true;
                         }
-                        SBConversations.scrollTo();
-                        valid = true;
+                        if (code == 38 || code == 40) {
+                            valid = true;
+                            SBConversations.scrollTo();
+                        }
                     }
                 } else if ([37, 39].includes(code) && users_area.sbActive() && admin.find('.sb-lightbox').sbActive()) {
                     let target = users_table.find(`[data-user-id="${activeUser().id}"]`);
@@ -4032,16 +4589,14 @@
                         SBProfile.show(target.attr('data-user-id'));
                     }
                     valid = true;
-                } else if ([46, 27].includes(code)) {
-                    if (admin.find('.sb-lightbox').sbActive()) {
-                        admin.sbHideLightbox();
+                } else if (code == 27 && admin.find('.sb-lightbox').sbActive()) {
+                    admin.sbHideLightbox();
+                    valid = true;
+                } else if (code == 46) {
+                    let target = admin.find('.sb-search-btn.sb-active');
+                    if (target.length) {
+                        target.find('i').click();
                         valid = true;
-                    } else {
-                        let target = admin.find('.sb-search-btn.sb-active');
-                        if (target.length) {
-                            target.find('i').click();
-                            valid = true;
-                        }
                     }
                 }
                 if (valid) {
@@ -4050,14 +4605,33 @@
             }
         });
 
+        $(window).keyup(function (e) {
+            active_keydown = false;
+        });
+
         // Check if the admin is active
         $(document).on('click keydown mousemove', function () {
-            SBF.debounce(function () {
-                if (!SBChat.tab_active) SBF.visibilityChange();
+            SBF.debounce(() => {
+                if (!SBChat.tab_active) {
+                    SBF.visibilityChange();
+                }
                 SBChat.tab_active = true;
                 clearTimeout(active_interval);
-                active_interval = setTimeout(() => { SBChat.tab_active = false }, 10000);
+                active_interval = setTimeout(() => {
+                    SBChat.tab_active = false
+                }, 10000);
             }, '#3', 8000);
+            if (!responsive) {
+                SBF.debounce(() => {
+                    if (away_mode) {
+                        SBUsers.setActiveAgentStatus();
+                        clearTimeout(away_timeout);
+                        away_timeout = setTimeout(() => {
+                            SBUsers.setActiveAgentStatus(false);
+                        }, 120000);
+                    }
+                }, '#4', 118000);
+            }
         });
 
         // Image from clipboard
@@ -4149,7 +4723,7 @@
             if (SB_ADMIN_SETTINGS.cloud) return;
             if (last == false || today_arr[0] != last[0] || (today_arr[1] > (last[1] + 10))) {
                 SBF.storage('last-update-check', today_arr);
-                if (SB_ADMIN_SETTINGS['auto-updates']) {
+                if (SB_ADMIN_SETTINGS.auto_updates) {
                     SBF.ajax({
                         function: 'update',
                         domain: SB_URL
@@ -4159,7 +4733,7 @@
                             clearCache();
                         }
                     });
-                } else if (SB_ACTIVE_AGENT['user_type'] == 'admin') {
+                } else if (SB_ACTIVE_AGENT.user_type == 'admin') {
                     SBF.ajax({
                         function: 'updates-available'
                     }, (response) => {
@@ -4234,11 +4808,11 @@
         });
 
         // Desktop and flash notifications
-        if (typeof Notification !== ND && (SB_ADMIN_SETTINGS['desktop-notifications'] == 'all' || SB_ADMIN_SETTINGS['desktop-notifications'] == 'agents') && !SB_ADMIN_SETTINGS['push-notifications']) {
+        if (typeof Notification !== ND && (SB_ADMIN_SETTINGS.desktop_notifications == 'all' || SB_ADMIN_SETTINGS.desktop_notifications == 'agents') && !SB_ADMIN_SETTINGS.push_notifications) {
             SBConversations.desktop_notifications = true;
         }
 
-        if (SB_ADMIN_SETTINGS['flash-notifications'] == 'all' || SB_ADMIN_SETTINGS['flash-notifications'] == 'agents') {
+        if (['all', 'agents'].includes(SB_ADMIN_SETTINGS.flash_notifications)) {
             SBConversations.flash_notifications = true;
         }
 
@@ -4333,46 +4907,48 @@
 
             // Touch move
             document.addEventListener('touchstart', (e) => {
-                x_down = e.changedTouches[0].clientX;
-                y_down = e.changedTouches[0].clientY;
+                touchmove_x = e.changedTouches[0].clientX;
+                touchmove_y = e.changedTouches[0].clientY;
             }, false);
+
+            document.addEventListener('touchend', () => {
+                touchEndEvent();
+            }, false);
+
             document.addEventListener('touchmove', (e) => {
-                if (!x_down || !y_down) return;
                 var x_up = e.changedTouches[0].clientX;
+                var x_diff = touchmove_x - x_up;
                 var y_up = e.changedTouches[0].clientY;
-                var x_diff = x_down - x_up;
-                var y_diff = y_down - y_up;
+                var y_diff = touchmove_y - y_up;
                 if (Math.abs(x_diff) > Math.abs(y_diff)) {
-                    if (conversations_area.sbActive()) {
-                        let target = conversations_admin_list_ul.find('.sb-active');
-                        if (x_diff > 0) {
-                            // Left
-                            target.next().click();
+                    var target_sub = [];
+                    touchmove = conversations_area.sbActive() ? [conversations_admin_list_ul.find('.sb-active'), conversations_area_list, 1] : [users_table.find(`[data-user-id="${activeUser().id}"]`), profile_box, 2];
+                    if (x_diff > 200) {
+
+                        // Left
+                        if (touchmove[2] == 1) {
+                            touchmove[0].next().click();
                         } else {
-                            // Right
-                            target.prev().click();
+                            target_sub = touchmove[0].next();
                         }
-                    } else if (users_area.sbActive() && admin.find('.sb-lightbox').sbActive()) {
-                        let target = users_table.find(`[data-user-id="${activeUser().id}"]`);
-                        if (x_diff > 0) {
-                            target = target.next();
+                        touchEndEvent();
+                    } else if (x_diff < -200) {
+
+                        // Right
+                        if (touchmove[2] == 1) {
+                            touchmove[0].prev().click();
                         } else {
-                            target = target.prev();
+                            target_sub = touchmove[0].prev();
                         }
-                        if (target.length) {
-                            admin.sbHideLightbox();
-                            SBProfile.show(target.attr('data-user-id'));
-                        }
+                        touchEndEvent();
                     }
-                } else {
-                    if (y_diff > 0) {
-                        // Top
-                    } else {
-                        // Bottom
+                    if (touchmove[2] == 2 && target_sub.length) {
+                        admin.sbHideLightbox();
+                        SBProfile.show(target_sub.attr('data-user-id'));
                     }
+                    touchmove[1].css('transform', 'translateX(' + (x_diff * -1) + 'px)');
+                    touchmove[1].addClass('sb-touchmove');
                 }
-                x_down = false;
-                y_down = false;
             }, false);
         }
 
@@ -4444,6 +5020,7 @@
                             SBSettings.initPlugins();
                             SBSettings.init = true;
                             loadingGlobal(false);
+                            SBF.event('SBSettingsLoaded', response);
                         });
                     }
                     SBUsers.stopRealTime();
@@ -4479,12 +5056,12 @@
             SBF.ajax({ function: 'on-close' });
             SBUsers.stopRealTime();
             SBConversations.stopRealTime();
-            SBF.logout();
+            setTimeout(() => { SBF.logout() }, 300);
         });
 
         $(header).on('click', '[data-value="edit-profile"],.edit-profile', function () {
             loadingGlobal();
-            let user = new SBUser({ 'id': SB_ACTIVE_AGENT['id'] });
+            let user = new SBUser({ 'id': SB_ACTIVE_AGENT.id });
             user.update(() => {
                 activeUser(user);
                 conversations_area.find('.sb-board').addClass('sb-no-conversation');
@@ -4494,7 +5071,9 @@
         });
 
         $(header).on('click', '[data-value="status"]', function () {
-            SBUsers.setActiveAgentStatus(!$(this).hasClass('sb-online'));
+            let is_offline = !$(this).hasClass('sb-online');
+            SBUsers.setActiveAgentStatus(is_offline);
+            away_mode = is_offline;
         });
 
         $(header).find('.sb-account').setProfile(SB_ACTIVE_AGENT['full_name'], SB_ACTIVE_AGENT['profile_image']);
@@ -4507,26 +5086,34 @@
 
         // Open the conversation clicked on the left menu
         $(conversations_admin_list_ul).on('click', 'li', function () {
-            SBConversations.openConversation($(this).attr('data-conversation-id'), $(this).attr('data-user-id'), false);
-            SBF.deactivateAll();
+            if (active_keydown == 17) {
+                $(this).sbActive(true);
+            } else {
+                SBConversations.openConversation($(this).attr('data-conversation-id'), $(this).attr('data-user-id'), false);
+                SBF.deactivateAll();
+            }
         });
 
         // Open the user conversation clicked on the bottom right area or user profile box
         $(admin).on('click', '.sb-user-conversations li', function () {
             SBConversations.openConversation($(this).attr('data-conversation-id'), activeUser().id, $(this).attr('data-conversation-status'));
-
         });
 
         // Archive, delete or restore conversations
         $(conversations_area).on('click', '.sb-top ul a', function () {
             let status_code = -1;
-            let message = 'The conversation will be ';
+            let selected_conversations = conversations_admin_list_ul.find('.sb-active').map(function () {
+                return { id: $(this).attr('data-conversation-id'), user_id: $(this).attr('data-user-id'), status_code: $(this).attr('data-conversation-status') };
+            }).toArray();
+            let multi_selection = selected_conversations.length > 1;
+            let message = multi_selection ? 'All the selected conversations will be ' : 'The conversation will be ';
             let value = $(this).attr('data-value');
-            let conversation = SBChat.conversation;
             let on_success = (response, action) => {
                 let success = response.includes('.txt');
                 $(this).sbLoading(false);
-                if (action == 'email') actionshowResponse(success ? sb_('Transcript sent to user\'s email.') + ' <a href="' + response + '" target="_blank">' + sb_('View transcript') + '</a>' : 'Transcript sending error: ' + response, success ? '' : 'error');
+                if (action == 'email') {
+                    actionshowResponse(success ? sb_('Transcript sent to user\'s email.') + ' <a href="' + response + '" target="_blank">' + sb_('View transcript') + '</a>' : 'Transcript sending error: ' + response, success ? '' : 'error');
+                }
             }
             switch (value) {
                 case 'inbox':
@@ -4548,7 +5135,7 @@
                 case 'transcript':
                     let action = $(this).attr('data-action');
                     if (action == 'email' && (!activeUser() || !activeUser().get('email'))) action = '';
-                    SBConversations.transcript(conversation.id, conversation.get('user_id'), action, (response) => on_success(response, action));
+                    SBConversations.transcript(selected_conversations[0].id, selected_conversations[0].user_id, action, (response) => on_success(response, action));
                     loading(this);
                     break;
                 case 'read':
@@ -4565,38 +5152,43 @@
             }
             if (status_code != -1) {
                 dialog(message, 'alert', function () {
-                    SBF.ajax({
-                        function: 'update-conversation-status',
-                        conversation_id: conversation.id,
-                        status_code: status_code
-                    }, () => {
-                        if ([0, 3, 4].includes(status_code)) {
-                            for (var i = 0; i < conversations.length; i++) {
-                                if (conversations[i]['conversation_id'] == conversation.id) {
-                                    conversations[i]['conversation_status_code'] = status_code;
-                                    break;
+                    for (var i = 0; i < selected_conversations.length; i++) {
+                        let conversation = selected_conversations[i];
+                        SBF.ajax({
+                            function: 'update-conversation-status',
+                            conversation_id: conversation.id,
+                            status_code: status_code
+                        }, () => {
+                            if ([0, 3, 4].includes(status_code)) {
+                                for (var i = 0; i < conversations.length; i++) {
+                                    if (conversations[i].id == conversation.id) {
+                                        conversations[i].set('status_code', status_code);
+                                        break;
+                                    }
                                 }
                             }
-                        }
-                        if (SB_ADMIN_SETTINGS['close-message'] && status_code == 3) {
-                            SBF.ajax({ function: 'close-message', conversation_id: conversation.id, bot_id: SB_ADMIN_SETTINGS['bot-id'] });
-                            if (SB_ADMIN_SETTINGS['close-message-transcript']) {
-                                SBConversations.transcript(conversation.id, conversation.get('user_id'), 'email', (response) => on_success(response));
+                            if (SB_ADMIN_SETTINGS.close_message && status_code == 3) {
+                                SBF.ajax({ function: 'close-message', conversation_id: conversation.id, bot_id: SB_ADMIN_SETTINGS.bot_id });
+                                if (SB_ADMIN_SETTINGS.close_message_transcript) {
+                                    SBConversations.transcript(conversation.id, conversation.user_id, 'email', (response) => on_success(response));
+                                }
                             }
+                            if ([0, 2].includes(status_code)) {
+                                conversations_admin_list_ul.find('.sb-active').attr('data-conversation-status', status_code);
+                                SBConversations.setReadIcon(status_code);
+                            }
+                            if (value == 'inbox' || ![0, 2].includes(status_code)) {
+                                conversations_filters.eq(0).find('li.sb-active').click();
+                                conversations_filters.eq(0).find('ul').sbActive(false);
+                            }
+                            if (SBApps.is('slack') && [3, 4].includes(status_code)) {
+                                SBF.ajax({ function: 'archive-slack-channels', conversation_user_id: SBChat.conversation.get('user_id') });
+                            }
+                        });
+                        if (SBChat.conversation && SBChat.conversation.id == conversation.id) {
+                            SBChat.conversation.set('status_code', status_code);
                         }
-                        if ([0, 2].includes(status_code)) {
-                            conversations_admin_list_ul.find('.sb-active').attr('data-conversation-status', status_code);
-                            SBConversations.setReadIcon(status_code);
-                        }
-                        if (value == 'inbox' || ![0, 2].includes(status_code)) {
-                            conversations_filters.eq(0).find('li.sb-active').click();
-                            conversations_filters.eq(0).find('ul').sbActive(false);
-                        }
-                        if (SBApps.is('slack') && [3, 4].includes(status_code)) {
-                            SBF.ajax({ function: 'archive-slack-channels', conversation_user_id: SBChat.conversation.get('user_id') });
-                        }
-                    });
-                    if (SBChat.conversation && SBChat.conversation.id == conversation.id) SBChat.conversation.set('conversation_status_code', status_code);
+                    }
                 });
             }
         });
@@ -4622,33 +5214,33 @@
             saved_replies.sbTogglePopup(this);
         });
 
-        $(conversations_area).on('click', '.sb-btn-open-ai', function () {
+        $(admin).on('click', '.sb-btn-open-ai', function () {
             if (!SBChat.conversation || loading(this)) return;
-            let textarea = conversations_area.find('.sb-editor textarea');
+            let is_editor = $(this).hasClass('sb-btn-open-ai-editor');
+            let textarea = is_editor ? conversations_area.find('.sb-editor textarea') : dialogflow_intent_box.find('textarea');
             SBApps.openAI.rewrite(textarea.val(), !SBChat.conversation.getUserMessages('agents').length, (response) => {
                 $(this).sbLoading(false);
-                if (response[0]) textarea.val(response[1]);
+                if (response[0]) {
+                    textarea.val(is_editor ? '' : response[1]);
+                    if (is_editor) {
+                        SBChat.insertText(response[1]);
+                    }
+                }
             });
         });
 
         $(saved_replies).on('click', '.sb-replies-list li', function () {
-            SBChat.insertText($(this).find('div:last-child').html());
+            SBChat.insertText($(this).find('div:last-child').text().replace(/\\n/g, '\n'));
             SBF.deactivateAll();
             admin.removeClass('sb-popup-active');
         });
 
         $(saved_replies).on('input', '.sb-search-btn input', function () {
-            let search = $(this).val().toLowerCase();
-            SBF.search(search, () => {
-                let code = '';
-                let all = search.length > 1 ? false : true;
-                for (var i = 0; i < saved_replies_list.length; i++) {
-                    if (all || saved_replies_list[i]['reply-name'].toLowerCase().includes(search) || saved_replies_list[i]['reply-text'].toLowerCase().includes(search)) {
-                        code += `<li><div>${saved_replies_list[i]['reply-name']}</div><div>${saved_replies_list[i]['reply-text']}</div></li>`;
-                    }
-                }
-                saved_replies.find('.sb-replies-list > ul').html(code);
-            });
+            saved_reply_search($(this).val().toLowerCase());
+        });
+
+        $(saved_replies).on('click', '.sb-search-btn i', function () {
+            SBF.searchClear(this, () => { saved_reply_search('') });
         });
 
         // Pagination for conversations
@@ -4663,19 +5255,20 @@
                     pagination: pagination,
                     status_code: filters[0],
                     department: filters[1],
-                    source: filters[2]
+                    source: filters[2],
+                    tag: filters[3]
                 }, (response) => {
                     setTimeout(() => { is_busy = false }, 500);
                     pagination_count = response.length;
                     if (pagination_count) {
                         let code = '';
                         for (var i = 0; i < pagination_count; i++) {
-                            code += SBConversations.getListCode(response[i]);
-                            conversations.push(response[i]);
+                            let conversation = new SBConversation([new SBMessage(response[i])], response[i]);
+                            code += SBConversations.getListCode(conversation);
+                            conversations.push(conversation);
                         }
                         pagination++;
                         conversations_admin_list_ul.append(code);
-                        scrollPagination(this, false, 1000);
                     }
                     parent.find(' > .sb-loading').remove();
                     SBF.event('SBAdminConversationsLoaded', { conversations: response });
@@ -4703,16 +5296,18 @@
             let conversation = response.conversation;
             let user = response.user;
             if (response.message) {
-                item.find('p').html(response.message);
+                item.find('p').html(SBF.escape(response.message));
             }
-            if (response['conversation_status_code'] != -1) {
+            if (response.conversation_status_code != -1) {
                 item.attr('data-conversation-status', response.conversation_status_code);
                 SBConversations.updateMenu();
             }
             if (SBApps.messenger.check(conversation)) {
                 SBApps.messenger.send(user.getExtra('facebook-id').value, conversation.get('extra'), response.message, response.attachments, response.message_id, (response) => {
-                    if (response && 'error' in response) {
-                        dialog(message_part + ' Messenger: ' + response.error.message, 'info', false, 'error-fb');
+                    for (var i = 0; i < response.length; i++) {
+                        if (response[i] && response[i].error) {
+                            dialog(message_part + ' Messenger: ' + response[i].error.message, 'info', false, 'error-fb');
+                        }
                     }
                 });
             }
@@ -4767,14 +5362,14 @@
                     }
                 });
             }
-            if (SB_ADMIN_SETTINGS['smart-reply']) {
+            if (SB_ADMIN_SETTINGS.smart_reply) {
                 suggestions_area.html('');
             }
-            if (SB_ADMIN_SETTINGS['assign-conversation-to-agent'] && SBF.null(conversation.get('agent_id'))) {
-                SBConversations.assignAgent(conversation_id, SB_ACTIVE_AGENT['id'], () => {
+            if (SB_ADMIN_SETTINGS.assign_conversation_to_agent && SBF.null(conversation.get('agent_id'))) {
+                SBConversations.assignAgent(conversation_id, SB_ACTIVE_AGENT.id, () => {
                     if (SBChat.conversation.id == conversation_id) {
-                        SBChat.conversation.set('agent_id', SB_ACTIVE_AGENT['id']);
-                        $(conversations_area).find('#conversation-agent > p').attr('data-value', SB_ACTIVE_AGENT['id']).html(SB_ACTIVE_AGENT['full_name']);
+                        SBChat.conversation.set('agent_id', SB_ACTIVE_AGENT.id);
+                        $(conversations_area).find('#conversation-agent > p').attr('data-value', SB_ACTIVE_AGENT.id).html(SB_ACTIVE_AGENT.full_name);
                     }
                 });
             }
@@ -4788,56 +5383,56 @@
             setTimeout(function () {
                 area.find('.sb-top .sb-status-typing').remove();
             }, 300);
-            if (SB_ADMIN_SETTINGS['smart-reply']) {
-                if (agent) {
-                    if (SB_ADMIN_SETTINGS['smart-reply-agent-assistant']) SBApps.dialogflow.smartReplyUpdate(response.message);
-                } else {
-                    SBApps.dialogflow.smartReply(response.message);
-                }
-            } else if (SB_ADMIN_SETTINGS['smart-reply-open-ai']) {
-                SBApps.dialogflow.smartReply();
-            }
             if (SBAdmin.must_translate) {
                 let message = SBChat.conversation.getMessage(response.id);
                 let message_html = area.find(`[data-id="${response.id}"]`);
                 let message_original = 'original-message' in payload ? payload['original-message'] : false;
                 if (message_original) {
+                    message_original = SBF.escape(message_original.replaceAll('<', '&lt;'));
                     message.set('translation', message_original);
                     message_html.replaceWith(message.getCode(true));
                     area.find(`[data-id="${response.id}"] .sb-menu`).prepend(`<li data-value="original">${sb_('View translation')}</li>`);
+                    if (SB_ADMIN_SETTINGS.smart_reply) {
+                        SBApps.dialogflow.smartReply(message_original);
+                    }
                 } else if (response.message) {
-                    SBApps.dialogflow.translate([response.message], SB_ADMIN_SETTINGS['active-agent-language'], (response_2) => {
+                    SBApps.dialogflow.translate([response.message], SB_ADMIN_SETTINGS.active_agent_language, (response_2) => {
                         if (response_2) {
-                            message.set('translation', response_2[0].translatedText);
+                            message.set('translation', response_2[0]);
                             message_html.replaceWith(message.getCode(true));
                             area.find(`[data-id="${response.id}"] .sb-menu`).prepend(`<li data-value="original">${sb_('View original message')}</li>`);
                         }
+                        if (SB_ADMIN_SETTINGS.smart_reply) {
+                            SBApps.dialogflow.smartReply(response_2[0]);
+                        }
                     });
                 }
+            } else if (SB_ADMIN_SETTINGS.smart_reply) {
+                SBApps.dialogflow.smartReply(response.message);
             }
-            if ('queryResult' in payload && 'fulfillmentMessages' in payload.queryResult) {
+            if (payload.queryResult && payload.queryResult.fulfillmentMessages) {
                 let messages = payload.queryResult.fulfillmentMessages;
                 for (var i = 0; i < messages.length; i++) {
-                    if ('payload' in messages[i]) {
+                    if (messages[i].payload) {
                         let message_payload = messages[i].payload;
-                        if ('department' in message_payload) {
+                        if (message_payload.department) {
                             SBConversations.setActiveDepartment(message_payload.department);
                             break;
                         }
-                        if ('agent' in message_payload) {
+                        if (message_payload.agent) {
                             SBConversations.setActiveAgent(message_payload.agent);
                             break;
                         }
                     }
                 }
             }
-            if ('ErrorCode' in payload) {
-                dialog('Error. Message not sent to WhatsApp. Error message: ' + payload['ErrorMessage'], 'info');
+            if ('ErrorCode' in payload || (payload.errors && payload.errors.length)) {
+                dialog('Error. Message not sent to WhatsApp. Error message: ' + (payload.ErrorCode ? payload.ErrorCode : payload.errors[0].title), 'info');
             }
-            if ('whatsapp-fallback' in payload) {
+            if ('whatsapp-templates' in payload) {
                 showResponse(`Message sent as text message.${'whatsapp-template-fallback' in payload ? ' The user has been notified via WhatsApp Template notification.' : ''}`);
             }
-            if ('whatsapp-template-fallback' in payload && !('whatsapp-fallback' in payload)) {
+            if ('whatsapp-template-fallback' in payload && !('whatsapp-templates' in payload)) {
                 showResponse('The user has been notified via WhatsApp Template notification.');
             }
             if (!agent && SBChat.conversation.id == response.get('conversation_id') && !SBChat.user_online) {
@@ -4863,7 +5458,7 @@
 
         // Event: Message notifications
         $(document).on('SBNotificationsSent', function (e, response) {
-            showResponse(`The user has been notified by email${response.includes('sms') ? ' and text message' : ''}.`);
+            showResponse(`The user ${response.includes('cron') ? 'will be' : 'has been'} notified by email${response.includes('sms') ? ' and text message' : ''}.`);
         });
 
         // Event: user typing status change
@@ -4883,7 +5478,9 @@
         // Conversations filter
         $(conversations_area).on('click', '.sb-admin-list .sb-select li', function () {
             let parent = conversations_admin_list_ul.parent();
-            if (loading(parent)) return;
+            if (loading(parent)) {
+                return;
+            }
             setTimeout(() => {
                 let filters = SBConversations.filters();
                 pagination = 1;
@@ -4892,7 +5489,8 @@
                     function: 'get-conversations',
                     status_code: filters[0],
                     department: filters[1],
-                    source: filters[2]
+                    source: filters[2],
+                    tag: filters[3]
                 }, (response) => {
                     SBConversations.populateList(response);
                     conversations_area.find('.sb-conversation').attr('data-conversation-status', filters[0]);
@@ -4900,10 +5498,16 @@
                         if (!responsive) {
                             if (SBChat.conversation) {
                                 let conversation = conversations_admin_list_ul.find(`[data-conversation-id="${SBChat.conversation.id}"]`);
-                                if (conversation.length) conversation.sbActive(true);
-                                else if (filters[0] == SBChat.conversation.get('conversation_status_code')) conversations_admin_list_ul.prepend(SBConversations.getListCode(SBChat.conversation).replace('<li', '<li class="sb-active"'));
-                                else SBConversations.clickFirst();
-                            } else SBConversations.clickFirst();
+                                if (conversation.length) {
+                                    conversation.sbActive(true);
+                                } else if (filters[0] == SBChat.conversation.status_code) {
+                                    conversations_admin_list_ul.prepend(SBConversations.getListCode(SBChat.conversation).replace('<li', '<li class="sb-active"'));
+                                } else {
+                                    SBConversations.clickFirst();
+                                }
+                            } else {
+                                SBConversations.clickFirst();
+                            }
                             SBConversations.scrollTo();
                         }
                     } else {
@@ -4925,38 +5529,60 @@
         });
 
         // Right profile list methods
-        $(admin).on('click', '.sb-profile-list [data-id="location"]', function () {
-            let location = $(this).find('label').html().replace(', ', '+');
-            dialog('<iframe src="https://maps.google.com/maps?q=' + location + '&output=embed"></iframe>', 'map');
-        });
-
-        $(admin).on('click', '.sb-profile-list [data-id="timezone"]', function () {
-            SBF.getLocationTimeString(activeUser().extra, (response) => {
-                loadingGlobal(false);
-                dialog(response, 'info');
-            });
-        });
-
-        $(admin).on('click', '.sb-profile-list [data-id="current_url"]', function () {
+        $(admin).on('click', '.sb-profile-list li', function () {
             let label = $(this).find('label');
-            window.open('//' + (SBF.null(label.attr('data-value')) ? label.html() : label.attr('data-value')));
-        });
-
-        $(admin).on('click', '.sb-profile-list [data-id="conversation-source"]', function () {
-            let source = $(this).find('label').html().toLowerCase();
-            if (source == 'whatsapp' && activeUser().getExtra('phone')) {
-                window.open('https://wa.me/' + SBApps.whatsapp.activeUserPhone());
-            } else if (source == 'facebook') {
-                window.open('https://www.facebook.com/messages/t/' + SBChat.conversation.get('extra'));
-            } else if (source == 'instagram') {
-                window.open('https://www.instagram.com/direct/inbox/');
-            } else if (source == 'twitter') {
-                window.open('https://twitter.com/messages/');
+            let label_value = label.html();
+            switch ($(this).attr('data-id')) {
+                case 'location':
+                    let location = label_value.replace(', ', '+');
+                    dialog('<iframe src="https://maps.google.com/maps?q=' + location + '&output=embed"></iframe>', 'map');
+                    break;
+                case 'timezone':
+                    SBF.getLocationTimeString(activeUser().extra, (response) => {
+                        loadingGlobal(false);
+                        dialog(response, 'info');
+                    });
+                    break;
+                case 'current_url':
+                    window.open('//' + (SBF.null(label.attr('data-value')) ? label_value : label.attr('data-value')));
+                    break;
+                case 'conversation-source':
+                    let source = label_value.toLowerCase();
+                    if (source == 'whatsapp' && activeUser().getExtra('phone')) {
+                        window.open('https://wa.me/' + SBApps.whatsapp.activeUserPhone());
+                    } else if (source == 'facebook') {
+                        window.open('https://www.facebook.com/messages/t/' + SBChat.conversation.get('extra'));
+                    } else if (source == 'instagram') {
+                        window.open('https://www.instagram.com/direct/inbox/');
+                    } else if (source == 'twitter') {
+                        window.open('https://twitter.com/messages/');
+                    }
+                    break;
+                case 'wp-id':
+                    window.open(window.location.href.substr(0, window.location.href.lastIndexOf('/')) + '/user-edit.php?user_id=' + activeUser().getExtra('wp-id').value);
+                    break;
+                case 'envato-purchase-code':
+                    loadingGlobal();
+                    SBF.ajax({
+                        function: 'envato',
+                        purchase_code: label_value
+                    }, (response) => {
+                        let code = '';
+                        if (response && response.item) {
+                            response.name = response.item.name;
+                            for (var key in response) {
+                                if (typeof response[key] === 'string') {
+                                    code += `<b>${SBF.slugToString(key)}</b> ${response[key]} <br>`;
+                                }
+                            }
+                            loadingGlobal(false);
+                            dialog(code, 'info', false, 'sb-envato-box');
+                        } else {
+                            showResponse(SBF.slugToString(response));
+                        }
+                    });
+                    break;
             }
-        });
-
-        $(admin).on('click', '.sb-profile-list [data-id="wp-id"]', function () {
-            window.open(window.location.href.substr(0, window.location.href.lastIndexOf('/')) + '/user-edit.php?user_id=' + activeUser().getExtra('wp-id').value);
         });
 
         // Dialogflow
@@ -5002,13 +5628,25 @@
         });
 
         $(dialogflow_intent_box).on('change', '#sb-intents-select', function () {
-            dialogflow_intent_box.find('.sb-bot-response').css('opacity', $(this).val() ? .5 : 1);
+            let intent = $(this).val();
+            dialogflow_intent_box.find('.sb-bot-response').css('opacity', intent ? .5 : 1).find('textarea').val(intent ? SBApps.dialogflow.getIntent(intent).messages[0].text.text[0] : SBApps.dialogflow.original_response);
         });
+
+        $(dialogflow_intent_box).on('change', 'textarea', function () {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                SBApps.dialogflow.original_response = dialogflow_intent_box.find('textarea').val();
+            }, 500);
+        });
+
 
         // Departments
         $(conversations_area).on('click', '#conversation-department li', function (e) {
             let select = $(this).parent().parent();
-            if ($(this).data('value') == select.find(' > p').attr('data-value')) return true;
+            if ($(this).data('id') == select.find(' > p').attr('data-id')) {
+                setTimeout(() => { $(this).sbActive(false); }, 100);
+                return true;
+            }
             if (!SBChat.conversation) {
                 $(this).parent().sbActive(false);
                 e.preventDefault();
@@ -5020,7 +5658,6 @@
                 SBConversations.assignDepartment(SBChat.conversation.id, value, () => {
                     SBConversations.setActiveDepartment(value);
                     select.sbLoading(false);
-                    select.find(' > p').attr('data-value', value);
                 });
             });
             e.preventDefault();
@@ -5050,7 +5687,7 @@
             return false;
         });
 
-        // Notes 
+        // Notes and Tags 
         notes_panel.on('click', '> i', function (e) {
             admin.find('.sb-notes-box').sbShowLightbox();
             e.preventDefault();
@@ -5072,11 +5709,11 @@
             } else {
                 if (loading(this)) return;
                 message = SBF.escape(message);
-                SBConversations.notes.add(SBChat.conversation.id, SB_ACTIVE_AGENT['id'], SB_ACTIVE_AGENT['full_name'], message, (response) => {
+                SBConversations.notes.add(SBChat.conversation.id, SB_ACTIVE_AGENT.id, SB_ACTIVE_AGENT['full_name'], message, (response) => {
                     if (Number.isInteger(response)) {
                         $(this).sbLoading(false);
                         admin.sbHideLightbox();
-                        SBConversations.notes.update([{ 'id': response, 'conversation_id': SBChat.conversation.id, 'user_id': SB_ACTIVE_AGENT['id'], 'name': SB_ACTIVE_AGENT['full_name'], 'message': message }], true);
+                        SBConversations.notes.update([{ id: response, conversation_id: SBChat.conversation.id, user_id: SB_ACTIVE_AGENT.id, name: SB_ACTIVE_AGENT['full_name'], message: message }], true);
                         textarea.val('');
                         showResponse('New note successfully added.');
                     } else {
@@ -5086,10 +5723,82 @@
             }
         });
 
+        tags_panel.on('click', '> i', function (e) {
+            let box = $(admin).find('.sb-tags-box');
+            let area = box.find('.sb-tags-cnt');
+            let code = '';
+            let tags = SBChat.conversation.details.tags;
+            let add = '<i id="sb-add-tag" class="sb-icon-plus sb-btn-icon"></i>';
+            for (var i = 0; i < tags.length; i++) {
+                code += `<span class="sb-active">${tags[i]}</span>`;
+            }
+            if (!SBConversations.tags.list) {
+                box.sbLoading(true);
+                SBF.ajax({
+                    function: 'get-tags'
+                }, (response) => {
+                    SBConversations.tags.list = response;
+                    area.html(code + SBConversations.tags.getAll(tags) + add);
+                    box.sbLoading(false);
+                });
+            } else {
+                area.html(code + SBConversations.tags.getAll(tags) + add);
+            }
+            box.sbShowLightbox();
+            e.preventDefault();
+            return false;
+        });
+
+        $(admin).on('click', '.sb-tags-cnt > span', function () {
+            $(this).toggleClass('sb-active');
+        });
+
+        $(admin).on('click', '#sb-add-tag', function () {
+            $('<input type="text">').insertBefore(this);
+        });
+
+        $(admin).on('click', '#sb-save-tags', function () {
+            if (loading(this)) return;
+            let tags = admin.find('.sb-tags-box').find('span.sb-active,input').map(function () {
+                return $(this).is('span') ? $(this).html() : $(this).val();
+            }).toArray();
+            let conversation_id = SBChat.conversation.id;
+            SBF.ajax({
+                function: 'update-tags',
+                conversation_id: conversation_id,
+                tags: tags
+            }, (response) => {
+                $(this).sbLoading(false);
+                SBConversations.tags.list = response[1];
+                if (response[0] === true) {
+                    SBConversations.tags.update(tags);
+                    if (SBChat.conversation && conversation_id == SBChat.conversation.id) {
+                        let tag_filter = SBConversations.filters()[3];
+                        SBChat.conversation.set('tags', tags);
+                        if (tag_filter && !tags.includes(tag_filter)) {
+                            conversations_admin_list_ul.find(`[data-conversation-id="${conversation_id}"]`).remove();
+                            SBConversations.clickFirst();
+                        }
+                    }
+                }
+                admin.sbHideLightbox();
+                showResponse(response[0] === true ? 'Tags have been successfully updated.' : response);
+            });
+        });
+
         // Suggestions
         $(suggestions_area).on('click', 'span', function () {
             SBChat.insertText($(this).html());
             suggestions_area.html('');
+        });
+
+        $(suggestions_area).on('mouseover', 'span', function () {
+            timeout = setTimeout(() => { $(this).addClass('sb-suggestion-full'); }, 2500);
+        });
+
+        $(suggestions_area).on('mouseout', 'span', function () {
+            clearTimeout(timeout);
+            suggestions_area.find('span').removeClass('sb-suggestion-full');
         });
 
         // Message menu
@@ -5120,7 +5829,7 @@
                     let translation = value == 'translation';
                     let agent = SBF.isAgent(message_user_type);
                     message.replaceWith(SBChat.conversation.getMessage(message_id).getCode(translation));
-                    conversations_area.find(`[data-id="${message_id}"] .sb-menu`).prepend(`<li data-value="${translation ? 'original' : 'translation'}">${sb_((agent && !translation) || (!agent && translation) ? 'View original message' : 'View translation')}</li>`);
+                    conversations_area.find(`[data-id="${message_id}"] .sb-menu`).prepend(`<li data-value="${translation ? 'original' : 'translation'}">${sb_((agent && message_user_type != 'bot' && !translation) || ((!agent || message_user_type == 'bot') && translation) ? 'View original message' : 'View translation')}</li>`);
                     break;
             }
         });
@@ -5203,7 +5912,6 @@
                         }
                         users_pagination++;
                         users_table.find('tbody').append(code);
-                        scrollPagination(this, false, 1000);
                     }
                     users_area.find(' > .sb-loading-pagination').remove();
                 });
@@ -5212,7 +5920,9 @@
 
         // Delete user button
         $(profile_edit_box).on('click', '.sb-delete', function () {
-            if (SB_ACTIVE_AGENT.id == activeUser().id) return showResponse('You cannot delete yourself.', 'error');
+            if (SB_ACTIVE_AGENT.id == activeUser().id) {
+                return showResponse('You cannot delete yourself.', 'error');
+            }
             dialog('This user will be deleted permanently including all linked data, conversations, and messages.', 'alert', function () {
                 SBUsers.delete(activeUser().id);
             });
@@ -5235,7 +5945,7 @@
             profile_edit_box.find('.sb-top-bar .sb-save').html(`<i class="sb-icon-check"></i>${sb_('Add user')}`);
             profile_edit_box.find('input,select,textara').removeClass('sb-error');
             profile_edit_box.removeClass('sb-cloud-admin');
-            if (SB_ACTIVE_AGENT['user_type'] == 'admin') {
+            if (SB_ACTIVE_AGENT.user_type == 'admin') {
                 profile_edit_box.find('#user_type').find('select').html(`<option value="user">${sb_('User')}</option><option value="agent">${sb_('Agent')}</option><option value="admin">${sb_('Admin')}</option>`);
             }
             SBProfile.clear(profile_edit_box);
@@ -5287,15 +5997,16 @@
                         if (conversations_area.sbActive()) {
                             SBConversations.updateUserDetails();
                         }
-                        if (user_id == SB_ACTIVE_AGENT['id']) {
+                        if (user_id == SB_ACTIVE_AGENT.id) {
                             SBF.loginCookie(response[1]);
-                            SB_ACTIVE_AGENT['full_name'] = activeUser().name;
-                            SB_ACTIVE_AGENT['profile_image'] = activeUser().image;
+                            SB_ACTIVE_AGENT.full_name = activeUser().name;
+                            SB_ACTIVE_AGENT.profile_image = activeUser().image;
                             header.find('.sb-account').setProfile();
                         }
                     }
                     $(this).sbLoading(false);
                     profile_edit_box.find('.sb-profile').setProfile();
+                    profile_edit_box.find('.sb-top-bar .sb-profile span').html(sb_('Add new user'));
                     showResponse(new_user ? 'New user added' : 'User updated');
                 });
                 SBF.event('SBUserUpdated', { new_user: new_user, user_id: user_id });
@@ -5311,14 +6022,16 @@
 
         // Open a user conversation
         $(profile_box).on('click', '.sb-user-conversations li', function () {
-            SBConversations.open($(this).attr('data-conversation-id'), activeUser().id);
+            SBConversations.open($(this).attr('data-conversation-id'), $(this).find('[data-user-id]').attr('data-user-id'));
         });
 
         // Start a new user conversation
         $(profile_box).on('click', '.sb-start-conversation', function () {
             SBConversations.open(-1, activeUser().id);
             SBConversations.openConversation(-1, activeUser().id);
-            if (responsive) SBConversations.mobileOpenConversation();
+            if (responsive) {
+                SBConversations.mobileOpenConversation();
+            }
         });
 
         // Show direct message box from user profile
@@ -5331,8 +6044,11 @@
             let value = $(this).data('value');
             let user_ids = SBUsers.getSelected();
             switch (value) {
+                case 'whatsapp':
+                    whatsapp_direct_message_box(user_ids);
+                    break;
                 case 'message':
-                case 'email':
+                case 'custom_email':
                 case 'sms':
                     SBConversations.showDirectMessageBox(value, user_ids);
                     break;
@@ -5354,14 +6070,21 @@
 
         // Direct message
         $(admin).on('click', '.sb-send-direct-message', function () {
-            let type = direct_message_box.attr('data-type');
-            let subject = direct_message_box.find('.sb-direct-message-subject input').val();
-            let message = direct_message_box.find('textarea').val();
-            let user_ids = direct_message_box.find('.sb-direct-message-users').val().replace(/ /g, '');
-            if (SBForm.errors(direct_message_box)) {
-                SBForm.showErrorMessage(direct_message_box, 'All fields are required.');
+            let type = $(this).attr('data-type') ? $(this).attr('data-type') : direct_message_box.attr('data-type');
+            let whatsapp = type == 'whatsapp';
+            let box = whatsapp ? admin.find('#sb-whatsapp-send-template-box') : direct_message_box;
+            let subject = box.find('.sb-direct-message-subject input').val();
+            let message = whatsapp ? '' : box.find('textarea').val();
+            let user_ids = box.find('.sb-direct-message-users').val().replace(/ /g, '');
+            let template_name = whatsapp ? box.find('#sb-whatsapp-send-template-list').val() : false;
+            let template_languages = whatsapp ? box.find('#sb-whatsapp-send-template-list option:selected').attr('data-languages') : false;
+            let parameters = whatsapp ? [box.find('#sb-whatsapp-send-template-header').val(), box.find('#sb-whatsapp-send-template-body').val()] : false;
+            if (SBForm.errors(box)) {
+                SBForm.showErrorMessage(box, 'Please complete the mandatory fields.');
             } else {
-                if (loading(this)) return;
+                if (loading(this)) {
+                    return;
+                }
                 if (type == 'message') {
                     SBF.ajax({
                         function: 'direct-message',
@@ -5369,10 +6092,10 @@
                         message: message
                     }, (response) => {
                         $(this).sbLoading(false);
-                        let send_email = SB_ADMIN_SETTINGS['notify-user-email'];
-                        let send_sms = SB_ADMIN_SETTINGS['sms-active-users'];
+                        let send_email = SB_ADMIN_SETTINGS.notify_user_email;
+                        let send_sms = SB_ADMIN_SETTINGS.sms_active_users;
                         if (SBF.errorValidation(response)) {
-                            return SBForm.showErrorMessage(direct_message_box, 'An error has occurred. Please make sure all user ids are correct.');
+                            return SBForm.showErrorMessage(box, 'An error has occurred. Please make sure all user ids are correct.');
                         }
                         if (send_email || send_sms) {
                             SBF.ajax({
@@ -5392,25 +6115,25 @@
                         showResponse(`${SBF.slugToString(type)} sent to all users.`);
                     });
                 } else {
-                    let slug = type == 'email' ? 'email' : 'phone';
+                    let slug = type == 'custom_email' ? 'email' : 'phone';
                     SBF.ajax({
                         function: 'get-users-with-details',
                         user_ids: user_ids,
                         details: [slug]
                     }, (response) => {
                         if (response[slug].length) {
-                            recursiveSending(response[slug], message, 0, [], type == 'email' ? 'custom-email' : 'sms', subject);
+                            recursiveSending(response[slug], message, 0, [], type, subject, template_name, parameters, template_languages);
                         } else {
                             $(this).sbLoading(false);
-                            return SBForm.showErrorMessage(direct_message_box, 'No users found.');
+                            return SBForm.showErrorMessage(box, 'No users found.');
                         }
                     });
                 }
             }
         });
 
-        function recursiveSending(user_ids, message, i = 0, user_ids_sms = [], type, subject = false) {
-            let settings = type == 'custom-email' ? ['send-custom-email', 'emails', ' users with an email', 'direct-emails'] : (type == 'sms' ? ['send-sms', 'text messages', ' with a phone number', 'direct-sms'] : ['create-email', 'emails', ' with an email', false]);
+        function recursiveSending(user_ids, message, i = 0, user_ids_sms = [], type, subject = false, template_name = false, parameters = false, template_languages = false) {
+            let settings = { whatsapp: ['whatsapp-send-template', 'messages', ' a phone number.', 'direct-whatsapp'], email: ['create-email', 'emails', ' an email address.', false], custom_email: ['send-custom-email', 'emails', ' an email address.', 'direct-emails'], sms: ['send-sms', 'text messages', ' a phone number.', 'direct-sms'] }[type];
             SBF.ajax({
                 function: settings[0],
                 to: user_ids[i].value,
@@ -5419,26 +6142,37 @@
                 sender_profile_image: SB_ACTIVE_AGENT['profile_image'],
                 subject: subject,
                 message: message,
+                template_name: template_name,
+                parameters: parameters,
+                template_languages: template_languages,
                 template: false
             }, (response) => {
                 let user_ids_length = user_ids.length;
-                direct_message_box.find('.sb-bottom > div').html(`${sb_('Sending')} ${settings[1]}... ${i + 1} / ${user_ids_length}`);
-                if (!response) console.warn(response);
-                if (response !== true && 'status' in response && response.status == 400) {
-                    dialog(`${response.message} Details at ${response.more_info}`, 'info');
-                    console.warn(response);
-                    return;
-                }
-                if (i < user_ids_length - 1) {
-                    return recursiveSending(user_ids, message, i + 1, user_ids_sms, type, subject);
-                } else {
-                    if (user_ids_sms.length) {
-                        recursiveSending(user_ids_sms, message, 0, [], 'sms', false);
-                    } else {
-                        admin.sbHideLightbox();
-                        if (settings[3]) SBF.ajax({ function: 'reports-update', name: settings[3], value: message.substr(0, 18) + ' | ' + user_ids_length });
+                let box = type == 'whatsapp' ? admin.find('#sb-whatsapp-send-template-box') : direct_message_box;
+                box.find('.sb-bottom > div').html(`${sb_('Sending')} ${sb_(settings[1])}... ${i + 1} / ${user_ids_length}`);
+                if (response) {
+                    if (response !== true && (('status' in response && response.status == 400) || ('error' in response && ![131030, 131009].includes(response.error.code)))) {
+                        SBForm.showErrorMessage(box, response.error ? response.error.message : `${response.message} Details at ${response.more_info}`);
+                        console.error(response);
+                        box.find('.sb-loading').sbLoading(false);
+                        box.find('.sb-bottom > div').html('');
+                        return;
                     }
-                    showResponse(user_ids_length == 1 ? 'Message sent' : `${SBF.slugToString(settings[1])} sent to all users${settings[2]}.`);
+                    if (i < user_ids_length - 1) {
+                        return recursiveSending(user_ids, message, i + 1, user_ids_sms, type, subject);
+                    } else {
+                        if (user_ids_sms.length) {
+                            recursiveSending(user_ids_sms, message, 0, [], 'sms', false);
+                        } else {
+                            admin.sbHideLightbox();
+                            if (settings[3]) {
+                                SBF.ajax({ function: 'reports-update', name: settings[3], value: message.substr(0, 18) + ' | ' + user_ids_length });
+                            }
+                        }
+                        showResponse(user_ids_length == 1 ? 'The message has been sent.' : sb_('The message was sent to sent to all users who have' + settings[2]));
+                    }
+                } else {
+                    console.warn(response);
                 }
             });
         }
@@ -5461,8 +6195,8 @@
             if (SBF.getURL('setting') != id) pushState('?setting=' + id);
         });
 
-        // Upload image
-        $(settings_area).on('click', '[data-type="upload-image"] .image', function () {
+        // Upload
+        $(settings_area).on('click', '[data-type="upload-image"] .image, [data-type="upload-file"] .sb-btn', function () {
             upload_target = this;
             admin.find('.sb-upload-form-admin .sb-upload-files').click();
         });
@@ -5479,7 +6213,9 @@
         });
 
         $(settings_area).on('click', '.repeater-item > i', function () {
-            SBSettings.repeaterDelete(this);
+            setTimeout(() => {
+                SBSettings.repeaterDelete(this);
+            }, 100);
         });
 
         // Color picker
@@ -5534,14 +6270,14 @@
         });
 
         $(settings_area).on('click', '#timetable-utc input', function () {
-            if ($(this).val() == '') {
+            if (!$(this).val()) {
                 $(this).val(Math.round(today.getTimezoneOffset() / 60));
             }
         });
 
         $(settings_area).on('click', '#dialogflow-sync-btn .sb-btn', function (e) {
-            let client_id = settings_area.find('#dialogflow-client-id input').val();
-            if (client_id && settings_area.find('#dialogflow-client-secret input').val()) {
+            let client_id = settings_area.find('#google-client-id input').val();
+            if (client_id && settings_area.find('#google-client-secret input').val()) {
                 window.open(`https://accounts.google.com/o/oauth2/auth?scope=https%3A%2F%2Fwww.googleapis.com/auth/dialogflow%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-translation%20https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-language&response_type=code&access_type=offline&redirect_uri=${SB_URL}/apps/dialogflow/functions.php&client_id=${client_id}&prompt=consent`);
             } else {
                 dialog('Before continuing enter Client ID and Client secret. Check the docs for more details.', 'info');
@@ -5557,9 +6293,11 @@
         });
 
         $(settings_area).on('click', '#dialogflow-saved-replies .sb-btn', function (e) {
-            if (!loading(this)) {
-                SBF.ajax({ function: 'dialogflow-saved-replies' }, () => { $(this).sbLoading(false) });
-            }
+            dialog('', 'alert', () => {
+                if (!loading(this)) {
+                    SBF.ajax({ function: 'dialogflow-saved-replies' }, () => { $(this).sbLoading(false) });
+                }
+            });
             e.preventDefault();
             return false;
         });
@@ -5572,7 +6310,22 @@
                     to: email,
                     email_type: $(this).parent().parent().attr('id') == 'test-email-user' ? 'user' : 'agent'
                 }, () => {
-                    dialog('Email successfully sent. Check your emails!', 'info');
+                    dialog('The message has been sent.', 'info');
+                    $(this).sbLoading(false);
+                });
+            }
+        });
+
+        $(settings_area).on('click', '#test-sms-user .sb-btn, #test-sms-agent .sb-btn', function () {
+            let phone_number = $(this).parent().find('input').val();
+            let message = settings_area.find('#sms-message-' + ($(this).parent().parent().attr('id') == 'test-sms-user' ? 'user' : 'agent') + ' textarea').val().trim();
+            if (phone_number && message && !loading(this)) {
+                SBF.ajax({
+                    function: 'send-sms',
+                    message: message,
+                    to: phone_number
+                }, (response) => {
+                    dialog(response && response.status == 'sent' ? 'The message has been sent.' : JSON.stringify(response), 'info');
                     $(this).sbLoading(false);
                 });
             }
@@ -5620,8 +6373,14 @@
             SBF.ajax({
                 function: 'path'
             }, (response) => {
-                dialog(response, 'info');
+                dialog(`<pre>${response}</pre>`, 'info');
             });
+            e.preventDefault();
+            return false;
+        });
+
+        $(settings_area).on('click', '#sb-url a', function (e) {
+            dialog(`<pre>${SB_URL}</pre>`, 'info');
             e.preventDefault();
             return false;
         });
@@ -5642,18 +6401,6 @@
             return false;
         });
 
-        $(settings_area).on('click', '#dialogflow-smart-reply-generate a', function (e) {
-            if (loading(this)) return;
-            SBF.ajax({
-                function: 'dialogflow-smart-reply-generate-conversations-data'
-            }, (response) => {
-                dialog('Conversations data successfully generated. Folder: ' + response, 'info');
-                $(this).sbLoading(false);
-            });
-            e.preventDefault();
-            return false;
-        });
-
         $(settings_area).on('click', '#open-ai-user-expressions-btn a', function (e) {
             if (!$(this).sbLoading()) {
                 dialog('Make a backup of your Dialogflow agent first. This operation can take several minutes.', 'alert', () => {
@@ -5670,13 +6417,59 @@
             return false;
         });
 
+        $(settings_area).on('click', '#open-ai-train-btn a', function (e) {
+            let url_inputs = settings_area.find('[data-id="open-ai-sources-url"], [data-id="open-ai-sources-file-url"]');
+            let select = settings_area.find('#open-ai-mode select');
+            let urls = [];
+            e.preventDefault();
+            if (!url_inputs.length || (!url_inputs[0].value && (url_inputs.length == 1 || !url_inputs[1].value))) {
+                return dialog('Please input at least one source for training.', 'info');
+                return false;
+            }
+            if (loading(this)) {
+                return false;
+            }
+            for (var i = 0; i < url_inputs.length; i++) {
+                if (url_inputs[i].value) {
+                    urls.push(url_inputs[i].value);
+                }
+            }
+            SBF.ajax({ function: 'open-ai-get-embeddings-delete', sources: urls }, () => {
+                dialog('<br><br><br><br><br>', 'info', false, 'sb-embeddings-box');
+                SBApps.openAI.crawler.training_button = $(this);
+                SBApps.openAI.crawler.errors = [];
+                SBApps.openAI.crawler.start_urls = urls.slice();
+                SBApps.openAI.crawler.start(urls);
+            });
+            if (!select.val()) {
+                select.val('all');
+                SBSettings.save();
+            }
+            return false;
+        });
+
+        $(admin).on('click', '#open-ai-sources-file .repeater-item i, #open-ai-sources-file .repeater-item .sb-btn', function () {
+            let input = $(this).parent().find('input');
+            let url = input.val();
+            if (url) {
+                SBF.ajax({ function: 'delete-file', path: url });
+                input.val('');
+            }
+        });
+
+        $(admin).on('click', '#open-ai-delete-training-btn', function () {
+            dialog('All previous training data for the chatbot will be removed.', 'alert', () => {
+                SBF.ajax({ function: 'open-ai-delete-training' });
+            });
+            return false;
+        });
+
         $(settings_area).on('click', '#sb-export-settings a', function (e) {
             if (loading(this)) return;
             SBF.ajax({
                 function: 'export-settings'
             }, (response) => {
-                window.open(response);
-                dialog(`${sb_('For security reasons, delete the settings file after downloading it. Close this window to automatically delete it. File location:')}<pre>${response}</pre>`, 'info', false, 'sb-export-settings-close', 'Settings exported');
+                dialogDeleteFile(response, 'sb-export-settings-close', 'Settings exported');
                 $(this).sbLoading(false);
             });
             e.preventDefault();
@@ -5684,9 +6477,9 @@
         });
 
         $(settings_area).on('click', '#sb-import-settings a', function (e) {
-            if (loading(this)) return;
             upload_target = this;
             upload_on_success = (response) => {
+                if (loading(this)) return;
                 SBF.ajax({
                     function: 'import-settings',
                     file_url: response
@@ -5702,10 +6495,9 @@
             return false;
         });
 
-        $(admin).on('click', '#sb-export-settings-close .sb-close', function () {
+        $(admin).on('click', '#sb-export-settings-close .sb-close, #sb-export-users-close .sb-close, #sb-export-report-close .sb-close', function () {
             SBF.ajax({ function: 'delete-file', path: admin.find('.sb-dialog-box p pre').html() });
         });
-
 
         // Slack  
         $(settings_area).on('click', '#slack-button .sb-btn', () => {
@@ -5824,7 +6616,7 @@
             if (!phone || loading(this)) return;
             SBF.ajax({
                 function: 'whatsapp-send-template',
-                phone: phone
+                to: phone
             }, (response) => {
                 dialog(response ? ('error' in response ? response.error.message : 'Message sent, check your WhatsApp!') : response, 'info');
                 $(this).sbLoading(false);
@@ -5869,7 +6661,7 @@
         // Translations
         $(settings_area).on('click', '#tab-translations', function () {
             let nav = settings_area.find('.sb-translations > .sb-nav > ul');
-            if (nav.html() == '') {
+            if (!nav.html()) {
                 let code = '';
                 for (var key in SB_LANGUAGE_CODES) {
                     if (key == 'en') continue;
@@ -6013,8 +6805,20 @@
             SBReports.initReport(false, $(this).val());
         });
 
+        $(reports_area).on('click', '.sb-report-export', function () {
+            if ($(this).sbLoading()) return;
+            SBReports.export((response) => {
+                $(this).sbLoading(false);
+                if (response) {
+                    dialogDeleteFile(response, 'sb-export-report-close', 'Report exported')
+                }
+            });
+        });
+
         if (SBF.getURL('report')) {
-            if (!reports_area.sbActive()) header.find('.sb-admin-nav #sb-reports').click();
+            if (!reports_area.sbActive()) {
+                header.find('.sb-admin-nav #sb-reports').click();
+            }
             setTimeout(() => { reports_area.find('#' + SBF.getURL('report')).click() }, 500);
         }
 
@@ -6346,7 +7150,12 @@
                     if (type == 'upload-image') {
                         $(upload_target).attr('data-value', response[1]).css('background-image', `url("${response[1]}")`);
                     }
-                    if (upload_on_success) upload_on_success(response[1]);
+                    if (type == 'upload-file') {
+                        $(upload_target).parent().find('input').val(response[1]);
+                    }
+                    if (upload_on_success) {
+                        upload_on_success(response[1]);
+                    }
                 } else {
                     console.log(response[1]);
                 }
@@ -6365,11 +7174,17 @@
             if ($(SBAdmin.open_popup).length) {
                 let popup = $(SBAdmin.open_popup);
                 if (!popup.is(e.target) && popup.has(e.target).length === 0 && !['sb-btn-saved-replies', 'sb-btn-emoji', 'sb-btn-woocommerce', 'sb-btn-open-ai'].includes($(e.target).attr('class'))) {
-                    if (popup.hasClass('sb-popup')) popup.sbTogglePopup();
-                    else if (popup.hasClass('sb-select')) popup.find('ul').sbActive(false);
-                    else if (popup.hasClass('sb-menu-mobile')) popup.find('i').sbActive(false);
-                    else if (popup.hasClass('sb-menu')) popup.sbActive(false);
-                    else admin.sbHideLightbox();
+                    if (popup.hasClass('sb-popup')) {
+                        popup.sbTogglePopup();
+                    } else if (popup.hasClass('sb-select')) {
+                        popup.find('ul').sbActive(false);
+                    } else if (popup.hasClass('sb-menu-mobile')) {
+                        popup.find('i').sbActive(false);
+                    } else if (popup.hasClass('sb-menu')) {
+                        popup.sbActive(false);
+                    } else if (!SBAdmin.open_popup || !['sb-embeddings-box'].includes(SBAdmin.open_popup.attr('id'))) {
+                        admin.sbHideLightbox();
+                    }
                     SBAdmin.open_popup = false;
                 }
             }
@@ -6380,7 +7195,7 @@
         SBF.ajax({
             function: 'get-conversations'
         }, (response) => {
-            if (response.length == 0) {
+            if (!response.length) {
                 conversations_area.find('.sb-board').addClass('sb-no-conversation');
             }
             SBConversations.populateList(response);
@@ -6388,27 +7203,29 @@
                 conversations_area.find('.sb-admin-list').sbActive(true);
             }
             if (SBF.getURL('conversation')) {
-                if (!conversations_area.sbActive()) header.find('.sb-admin-nav #sb-conversations').click();
+                if (!conversations_area.sbActive()) {
+                    header.find('.sb-admin-nav #sb-conversations').click();
+                }
                 SBConversations.openConversation(SBF.getURL('conversation'));
             } else if (!responsive && !SBF.getURL('user') && !SBF.getURL('setting') && !SBF.getURL('report') && (!SBF.getURL('area') || SBF.getURL('area') == 'conversations')) {
                 SBConversations.clickFirst();
             }
             SBConversations.startRealTime();
-            SBConversations.datetime_last_conversation = SB_ADMIN_SETTINGS['now-db'];
+            SBConversations.datetime_last_conversation = SB_ADMIN_SETTINGS.now_db;
             loadingGlobal(false);
         });
         SBPusher.initServiceWorker();
-        if (SB_ADMIN_SETTINGS['push-notifications']) {
+        if (SB_ADMIN_SETTINGS.push_notifications) {
             SBPusher.initPushNotifications();
         }
         setInterval(function () {
             SBF.ajax({
                 function: 'get-active-user',
-                db: true 
+                db: true
             }, (response) => {
                 if (!response) SBF.reset();
             });
-        }, 3600000); 
+        }, 3600000);
     }
 }(jQuery));
 

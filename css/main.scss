@@ -775,16 +775,15 @@ div ul.sb-menu li:hover,
                 }
 
                 & + .sb-list {
-                    padding-top: 25px;
 
                     .sb-notify-message {
-                        top: 120px;
+                        top: 130px;
                     }
                 }
             }
 
             .sb-header-type-minimal + .sb-list {
-                padding-top: 55px;
+                padding-top: 30px;
             }
         }
     }
@@ -924,7 +923,6 @@ div ul.sb-menu li:hover,
 
                 li {
                     border: none;
-                    position: relative;
                     padding: 10px 25px;
                     margin: 0;
                     text-align: left;
@@ -1312,28 +1310,6 @@ div ul.sb-menu li:hover,
         background-color: $color-dark-blue;
     }
 
-    span {
-        position: absolute;
-        width: 20px;
-        height: 20px;
-        text-align: center;
-        background: $color-red;
-        color: $white;
-        border-radius: 100%;
-        font-weight: 500;
-        font-size: 11px;
-        line-height: 22px;
-        top: 0;
-        left: -3px;
-        z-index: 2;
-        animation: sb-fade-animation 0.3s;
-
-        &:empty,
-        &[data-count="0"] {
-            display: none;
-        }
-    }
-
     img {
         max-width: 100%;
         width: 60px;
@@ -1400,6 +1376,13 @@ div ul.sb-menu li:hover,
         padding-bottom: 0 !important;
     }
 }
+
+/*
+
+# RESPONSIVE
+==========================================================
+
+*/
 
 @media (max-height: 678px) {
     .sb-chat .sb-body .sb-scroll-area,

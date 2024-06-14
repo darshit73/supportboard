@@ -20,6 +20,14 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
+
+.sb-icon-play:before {
+    content: "\f04b";
+}
+
+.sb-icon-pause:before {
+    content: "\f04c";
+}
  
 .sb-icon-openai:before {
     content: "\e902";

@@ -28,7 +28,9 @@ if (isset($_POST['AccountSid']) && isset($_POST['From'])) {
     // User and conversation
     $GLOBALS['SB_FORCE_ADMIN'] = true;
     sb_cloud_load_by_url();
-    if ($_POST['AccountSid'] != sb_get_multi_setting('sms', 'sms-user')) sb_api_error(new SBError('security-error', '', 'Wrong AccountSid.'));
+    if ($_POST['AccountSid'] != sb_get_multi_setting('sms', 'sms-user')) {
+        sb_api_error(sb_error('security-error', 'api.php', 'Wrong AccountSid.'));
+    }
     $phone = $_POST['From'];
     $message = $_POST['Body'];
     $user = sb_get_user_by('phone', $phone);
@@ -45,9 +47,10 @@ if (isset($_POST['AccountSid']) && isset($_POST['From'])) {
                 $extra['country'] = [$country_codes[$code], 'Country'];
             }
         }
-        if ($message && sb_get_multi_setting('dialogflow-language-detection', 'dialogflow-language-detection-active')) {
+        if ($message && (sb_get_multi_setting('google', 'google-language-detection') || sb_get_multi_setting('dialogflow-language-detection', 'dialogflow-language-detection-active'))) { // Deprecated: sb_get_multi_setting('dialogflow-language-detection', 'dialogflow-language-detection-active')
             $detected_language = sb_google_language_detection($message);
-            if (!empty($detected_language)) $extra['language'] = [$detected_language, 'Language'];
+            if (!empty($detected_language))
+                $extra['language'] = [$detected_language, 'Language'];
         }
         $user_id = sb_add_user([], $extra);
         $user = sb_get_user($user_id);
@@ -61,7 +64,7 @@ if (isset($_POST['AccountSid']) && isset($_POST['From'])) {
     $attachments = [];
     for ($i = 0; $i < 10; $i++) {
         $url = sb_isset($_POST, 'MediaUrl' . $i);
-    	if ($url && isset($_POST['MediaContentType' . $i])) {
+        if ($url && isset($_POST['MediaContentType' . $i])) {
             switch ($_POST['MediaContentType0']) {
                 case 'video/mp4':
                     $extension = '.mp4';
@@ -100,14 +103,16 @@ if (isset($_POST['AccountSid']) && isset($_POST['From'])) {
     }
 
     // Send message to Support Board
-    if (!$conversation_id) $conversation_id = sb_isset(sb_new_conversation($user_id, 2, '', false, -1, 'tm'), 'details', [])['id'];
+    if (!$conversation_id) {
+        $conversation_id = sb_isset(sb_new_conversation($user_id, 2, '', false, -1, 'tm'), 'details', [])['id'];
+    }
     sb_send_message($user_id, $conversation_id, $message, $attachments, 2);
 
     // Dialogflow and Slack
     if (!$agent) {
         if (defined('SB_DIALOGFLOW') && sb_get_setting('dialogflow-sms')) {
             sb_messaging_platforms_functions($conversation_id, $message, $attachments, $user, ['source' => 'tm', 'phone' => $phone]);
-        } else if (defined('SB_SLACK') && sb_get_setting('slack-active') && (!defined('SB_DIALOGFLOW') || !sb_get_setting('dialogflow-active') || sb_dialogflow_is_human_takeover($conversation_id))) {
+        } else if (defined('SB_SLACK') && sb_get_setting('slack-active') && (!defined('SB_DIALOGFLOW') || (!sb_get_setting('dialogflow-active') && !sb_get_multi_setting('google', 'dialogflow-active') && !sb_get_multi_setting('open-ai', 'open-ai-active')) || sb_dialogflow_is_human_takeover($conversation_id))) { // Deprecated: sb_get_setting('dialogflow-active')
             sb_send_slack_message($user['id'], sb_get_user_name($user), $user['profile_image'], $message, $attachments, $conversation_id);
         }
     }
@@ -117,7 +122,8 @@ if (isset($_POST['AccountSid']) && isset($_POST['From'])) {
 }
 
 // API
-if (!isset($_POST['function'])) die(json_encode(['status' => 'error', 'response' => 'missing-function-name', 'message' => 'Function name is required. Get it from the docs.']));
+if (!isset($_POST['function']))
+    die(json_encode(['status' => 'error', 'response' => 'missing-function-name', 'message' => 'Function name is required. Get it from the docs.']));
 define('SB_API', true);
 sb_process_api();
 
@@ -179,7 +185,8 @@ function sb_process_api() {
         'get-rating' => ['user_id'],
         'get-new-messages' => ['user_id', 'conversation_id', 'datetime'],
         'send-message' => ['user_id', 'conversation_id'],
-        'send-bot-message' => ['conversation_id', 'message'], // Deprecated
+        'send-bot-message' => ['conversation_id', 'message'],
+        // Deprecated
         'send-slack-message' => ['user_id'],
         'update-message' => ['message_id'],
         'update-messages-status' => ['conversation_id', 'message_ids'],
@@ -208,7 +215,7 @@ function sb_process_api() {
         'is-typing' => ['user_id', 'conversation_id'],
         'is-agent-typing' => ['conversation_id'],
         'set-typing' => [],
-        'push-notification' => ['title' , 'message', 'interests'],
+        'push-notification' => ['title', 'message', 'interests'],
         'dialogflow-message' => [],
         'dialogflow-create-intent' => ['expressions', 'response'],
         'dialogflow-entity' => ['entity_name', 'synonyms'],
@@ -261,7 +268,7 @@ function sb_process_api() {
         'email-piping' => [],
         'get-bot-id' => [],
         'get-agents-in-conversation' => ['conversation_id'],
-        'update-conversation-agent' => ['conversation_id' ,'agent_id'],
+        'update-conversation-agent' => ['conversation_id', 'agent_id'],
         'open-ai-curl' => ['url_part'],
         'open-ai-message' => ['message'],
         'open-ai-user-expressions' => ['message'],
@@ -284,43 +291,43 @@ function sb_process_api() {
     ];
 
     if (!isset($functions[$function_name])) {
-        sb_api_error(new SBError('function-not-found', $function_name, 'Function ' . $function_name . ' not found. Check the function name.'));
+        sb_api_error(sb_error('function-not-found', $function_name, 'Function ' . $function_name . ' not found. Check the function name.'));
     }
 
     if (!isset($_POST['token'])) {
-        sb_api_error(new SBError('token-not-found', $function_name, 'Admin token is required. Get it from ' . (sb_is_cloud() ? CLOUD_URL . '/account.' : 'Users > Your admin user profile box.')));
+        sb_api_error(sb_error('token-not-found', $function_name, 'Admin token is required. Get it from ' . (sb_is_cloud() ? CLOUD_URL . '/account.' : 'Users > Your admin user profile box.')));
     } else if (sb_is_cloud()) {
         require_once(SB_CLOUD_PATH . '/account/functions.php');
         cloud_api();
     } else if (!sb_api_security($_POST['token'])) {
-        sb_api_error(new SBError('invalid-token', $function_name, 'Use a token of an administrator.'));
+        sb_api_error(sb_error('invalid-token', $function_name, 'Use a token of an administrator.'));
     }
 
     if (count($functions[$function_name]) > 0) {
         for ($i = 0; $i < count($functions[$function_name]); $i++) {
             if (!isset($_POST[$functions[$function_name][$i]])) {
-                sb_api_error(new SBError('missing-argument', $function_name, 'Missing argument: ' . $functions[$function_name][$i]));
+                sb_api_error(sb_error('missing-argument', $function_name, 'Missing argument: ' . $functions[$function_name][$i]));
             }
         }
     }
 
     // Check if the app required by a method is installed
     $apps = [
-        'SB_WP'=> ['wp-sync'],
-        'SB_DIALOGFLOW'=> ['dialogflow-message', 'dialogflow-create-intent', 'dialogflow-intent', 'dialogflow-entity', 'dialogflow-get-entity', 'dialogflow-get-token', 'dialogflow-get-agent', 'dialogflow-set-active-context', 'dialogflow-curl', 'send-bot-message'],
-        'SB_SLACK'=> ['send-slack-message', 'slack-users', 'archive-slack-channels']
+        'SB_WP' => ['wp-sync'],
+        'SB_DIALOGFLOW' => ['dialogflow-message', 'dialogflow-create-intent', 'dialogflow-intent', 'dialogflow-entity', 'dialogflow-get-entity', 'dialogflow-get-token', 'dialogflow-get-agent', 'dialogflow-set-active-context', 'dialogflow-curl', 'send-bot-message'],
+        'SB_SLACK' => ['send-slack-message', 'slack-users', 'archive-slack-channels']
     ];
 
     foreach ($apps as $key => $value) {
         if ((in_array($function_name, $value) && !defined($key))) {
-            sb_api_error(new SBError('app-not-installed', $function_name));
+            sb_api_error(sb_error('app-not-installed', $function_name));
         }
     }
 
     // Convert JSON to array
     $json_keys = [];
     switch ($function_name) {
-        case'automations-is-sent':
+        case 'automations-is-sent':
             $json_keys = ['automation'];
             break;
         case 'dialogflow-update-intent':
@@ -353,7 +360,7 @@ function sb_process_api() {
         case 'set-rating':
             $json_keys = ['settings'];
             break;
-        case  'save-translations':
+        case 'save-translations':
             $json_keys = ['translations'];
             break;
         case 'update-message':
@@ -439,9 +446,11 @@ function sb_process_api() {
 
 function sb_api_error($error, $die = true) {
     $response = ['status' => 'error', 'response' => $error->code()];
-    if ($error->message()) $response['message'] = $error->message();
+    if ($error->message())
+        $response['message'] = $error->message();
     $response = json_encode($response);
-    if ($die) die($response);
+    if ($die)
+        die($response);
     return $response;
 }
 

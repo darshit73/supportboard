@@ -24,9 +24,13 @@ if (file_exists('config.php')) {
     $is_cloud = sb_is_cloud();
     if ($is_cloud) {
         sb_cloud_load();
-        if (!defined('SB_DB_NAME') || !sb_is_agent()) die('<script>document.location = "' . CLOUD_URL . '/account?login"</script>');
+        if (!defined('SB_DB_NAME') || !sb_is_agent()) {
+            die('<script>document.location = "' . CLOUD_URL . '/account?login"</script>');
+        }
         $cloud_code = sb_cloud_membership_validation();
-    } else if (!defined('SB_URL')) define('SB_URL', '');
+    } else if (!defined('SB_URL')) {
+        define('SB_URL', '');
+    }
     $connection_check = sb_db_check_connection();
     $connection_success = $connection_check === true;
     $minify = false;
@@ -57,19 +61,27 @@ require('include/components.php');
         <?php echo !$is_cloud && $connection_success && sb_get_setting('admin-title') ? sb_get_setting('admin-title') : ($is_cloud ? SB_CLOUD_BRAND_NAME : 'Support Board') ?>
     </title>
     <script src="<?php echo $sb_url . 'js/min/jquery.min.js?v=' . SB_VERSION ?>"></script>
-    <script src="<?php echo $sb_url . ((($is_cloud || $minify) && !isset($_GET['localhost'])) ? 'js/min/main.min.js?v=' : 'js/main.js?v=') . SB_VERSION ?>"></script>
-    <script src="<?php echo $sb_url . ((($is_cloud || $minify) && !isset($_GET['localhost'])) ? 'js/min/admin.min.js?v=' : 'js/admin.js?v=') . SB_VERSION ?>"></script>
-    <?php if (sb_get_multi_setting('grammarly', 'grammarly-active')) echo '<script src="https://unpkg.com/@grammarly/editor-sdk?clientId=' . sb_get_multi_setting('grammarly', 'grammarly-client-id') . '"></script>' ?>
+    <script src="<?php echo $sb_url . ((($is_cloud || $minify) && !isset($_GET['debug'])) ? 'js/min/main.min.js?v=' : 'js/main.js?v=') . SB_VERSION ?>"></script>
+    <script src="<?php echo $sb_url . ((($is_cloud || $minify) && !isset($_GET['debug'])) ? 'js/min/admin.min.js?v=' : 'js/admin.js?v=') . SB_VERSION ?>"></script>
     <link rel="stylesheet" href="<?php echo $sb_url . 'css/admin.css?v=' . SB_VERSION ?>" media="all" />
-    <link rel="stylesheet" href="<?php echo $sb_url . 'css/responsive-admin.css?v=' . SB_VERSION ?>" media="(max-width: 428px)" />
-    <?php if ($connection_success && (sb_get_setting('rtl-admin') || ($is_cloud && defined('SB_CLOUD_DEFAULT_RTL')))) echo '<link rel="stylesheet" href="' . $sb_url . 'css/rtl-admin.css?v=' . SB_VERSION . '" />' ?>
+    <link rel="stylesheet" href="<?php echo $sb_url . 'css/responsive-admin.css?v=' . SB_VERSION ?>" media="(max-width: 464px)" />
+    <?php
+    if ($connection_success && (sb_get_setting('rtl-admin') || ($is_cloud && defined('SB_CLOUD_DEFAULT_RTL')))) {
+        echo '<link rel="stylesheet" href="' . $sb_url . 'css/rtl-admin.css?v=' . SB_VERSION . '" />';
+    }
+    ?>
     <link rel="shortcut icon" type="image/png" href="<?php echo $is_cloud ? SB_CLOUD_BRAND_ICON_PNG : sb_get_setting('admin-icon', $sb_url . 'media/icon.png') ?>" />
     <link rel="apple-touch-icon" href="<?php echo $is_cloud ? SB_CLOUD_BRAND_ICON_PNG : sb_get_setting('admin-icon', $sb_url . 'resources/pwa/icons/icon-192x192.png') ?>" />
     <link rel="manifest" href="<?php echo $is_cloud ? SB_CLOUD_MANIFEST_URL : sb_get_setting('manifest-url', $sb_url . 'resources/pwa/manifest.json') ?>" />
-    <?php if ($is_cloud) { cloud_js_admin(); echo $cloud_code; } ?>
     <?php
+    if ($is_cloud) {
+        cloud_js_admin();
+        echo $cloud_code;
+    }
     if ($connection_success) {
+        $GLOBALS['SB_FORCE_ADMIN'] = true;
         sb_js_global();
+        $GLOBALS['SB_FORCE_ADMIN'] = false;
         sb_js_admin();
     }
     ?>
