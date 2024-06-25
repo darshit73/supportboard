@@ -5,7 +5,7 @@
  * FUNCTIONS_EMAIL.PHP
  * ==========================================================
  *
- * Email functions file. © 2017-2023 board.support. All rights reserved.
+ * Email functions file. © 2017-2024 board.support. All rights reserved.
  *
  * ----------------------------------------------------------
  * EMAIL
@@ -68,13 +68,28 @@ function sb_email_create($recipient_id, $sender_name, $sender_profile_image, $me
     if (defined('SB_DIALOGFLOW') && strpos($message, '<div style') === false) {
         $message = sb_google_translate_auto($message, $recipient_id);
     }
-    $suffix = sb_is_agent($recipient_user_type) ? 'agent' : 'user';
-    $settings = sb_get_multilingual_setting('emails', 'email-' . $suffix, sb_get_user_language(is_numeric($recipient_id) ? $recipient_id : false));
-    $email = sb_email_create_content($settings['email-' . $suffix . '-subject'], $settings['email-' . $suffix . '-content'], $attachments, ['conversation_url_parameter' => ($recipient && $conversation_id ? ('?conversation=' . $conversation_id . '&token=' . $recipient['token']) : ''), 'message' => $message, 'recipient_name' => $recipient_name, 'sender_name' => $sender_name, 'sender_profile_image' => $sender_profile_image, 'conversation_id' => $conversation_id]);
+    $subject_and_body = sb_email_get_subject_and_body($recipient_user_type, $recipient_id);
+    $email = sb_email_create_content($subject_and_body[0], $subject_and_body[1], $attachments, ['conversation_url_parameter' => ($recipient && $conversation_id ? ('?conversation=' . $conversation_id . '&token=' . $recipient['token']) : ''), 'message' => $message, 'recipient_name' => $recipient_name, 'sender_name' => $sender_name, 'sender_profile_image' => str_replace('user.svg', 'user.png', $sender_profile_image), 'conversation_id' => $conversation_id]);
     $piping = sb_email_piping_suffix($conversation_id);
-    $piping_delimiter = !empty($piping) && sb_get_multi_setting('email-piping', 'email-piping-delimiter') ? ('<div style="color:#b5b5b5">### ' . sb_('Please type your reply above this line') . ' ###</div><br><br>') : '';
+    $delimiter_text = 'Please type your reply above this line';
+    $piping_delimiter = !empty($piping) && sb_get_multi_setting('email-piping', 'email-piping-delimiter') ? ('<div style="color:#b5b5b5">### ' . (is_numeric($recipient_id) ? sb_t($delimiter_text, sb_get_user_language($recipient_id)) : sb_($delimiter_text)) . ' ###</div><br><br>') : '';
     sb_webhooks('SBEmailSent', ['recipient_id' => $recipient_id, 'message' => $message, 'attachments' => $attachments]);
     return sb_email_send($recipient_email, $email[0], $piping_delimiter . $email[1], $piping);
+}
+
+function sb_email_get_subject_and_body($recipient_user_type, $recipient_id = false) {
+    $is_agent = sb_is_agent($recipient_user_type);
+    $suffix = $is_agent ? 'agent' : 'user';
+    $settings = sb_get_multilingual_setting('emails', 'email-' . $suffix, sb_get_user_language(is_numeric($recipient_id) ? $recipient_id : false));
+    $body = trim($settings['email-' . $suffix . '-content']);
+    if (empty($body) && defined($is_agent ? 'SB_CLOUD_EMAIL_BODY_AGENTS' : 'SB_CLOUD_EMAIL_BODY_USERS')) {
+        $body = $is_agent ? SB_CLOUD_EMAIL_BODY_AGENTS : SB_CLOUD_EMAIL_BODY_USERS;
+        if (!$is_agent && defined('DIRECT_CHAT_URL')) {
+            require_once(SB_CLOUD_PATH . '/account/functions.php');
+            $body = str_replace('{conversation_link}', DIRECT_CHAT_URL . '/' . account_chat_id(account()['user_id']) . '?chat=open', $body);
+        }
+    }
+    return [$settings['email-' . $suffix . '-subject'], $body];
 }
 
 function sb_email_create_content($subject, $body, $attachments, $replacements) {
@@ -82,13 +97,13 @@ function sb_email_create_content($subject, $body, $attachments, $replacements) {
         $attachments = [];
     }
     if (!$subject) {
-        $subject = 'Message from {sender_name}';
+        $subject = 'New message from {sender_name}';
     }
     if (!$body) {
         $body = 'Hello {recipient_name}!<br />{message}{attachments}';
     }
     $subject = str_replace(['{recipient_name}', '{sender_name}'], [$replacements['recipient_name'], sb_isset($replacements, 'sender_name')], $subject);
-    $body = str_replace(['{conversation_url_parameter}', '{recipient_name}', '{sender_name}', '{sender_profile_image}', '{message}', '{attachments}', '{conversation_link}'], ['conversation_url_parameter' => sb_isset($replacements, 'conversation_url_parameter', ''), $replacements['recipient_name'], sb_isset($replacements, 'sender_name'), sb_isset($replacements, 'sender_profile_image'), $replacements['message'], sb_email_attachments_code($attachments), (SB_URL . '/admin.php' . (isset($replacements['conversation_id']) ? '?conversation=' . $replacements['conversation_id'] : ''))], $body);
+    $body = str_replace(['{conversation_url_parameter}', '{recipient_name}', '{sender_name}', '{sender_profile_image}', '{message}', '{attachments}', '{conversation_link}'], ['conversation_url_parameter' => sb_isset($replacements, 'conversation_url_parameter', ''), $replacements['recipient_name'], sb_isset($replacements, 'sender_name'), str_replace('user.svg', 'user.png', sb_isset($replacements, 'sender_profile_image')), $replacements['message'], sb_email_attachments_code($attachments), ((sb_is_cloud() ? CLOUD_URL : SB_URL . '/admin.php') . (isset($replacements['conversation_id']) ? '?conversation=' . $replacements['conversation_id'] : ''))], $body);
     return [$subject, $body];
 }
 
@@ -121,6 +136,7 @@ function sb_email_send($to, $subject, $body, $sender_suffix = '') {
         $mail->Subject = trim($subject);
         $mail->Body = $body;
         $mail->AltBody = $body;
+        $mail->SMTPOptions = ['ssl' => ['verify_peer' => false, 'verify_peer_name' => false, 'allow_self_signed' => true]];
         if (strpos($to, ',') > 0) {
             $emails = explode(',', $to);
             for ($i = 0; $i < count($emails); $i++) {
@@ -152,9 +168,8 @@ function sb_email($recipient_id, $message, $attachments = [], $sender_id = -1) {
         if (!$user['email']) {
             return new SBValidationError('user-email-not-found');
         }
-        $email_type = sb_is_agent($user['id']) ? 'agent' : 'user';
-        $emails = sb_get_multilingual_setting('emails', 'email-' . $email_type, sb_get_user_language($recipient_id));
-        $email = sb_email_create_content($emails['email-' . $email_type . '-subject'], $emails['email-' . $email_type . '-content'], $attachments, ['message' => $message, 'recipient_name' => sb_get_user_name($user), 'sender_name' => sb_get_user_name($sender), 'sender_profile_image' => $sender['profile_image']]);
+        $subject_and_body = sb_email_get_subject_and_body($user['user_type'], $recipient_id);
+        $email = sb_email_create_content($subject_and_body[0], $subject_and_body[1], $attachments, ['message' => $message, 'recipient_name' => sb_get_user_name($user), 'sender_name' => sb_get_user_name($sender), 'sender_profile_image' => str_replace('user.svg', 'user.png', $sender['profile_image'])]);
         return sb_email_send($user['email'], $email[0], $email[1]);
     } else {
         return sb_error('user-or-sender-not-found', 'sb_email');
@@ -166,8 +181,8 @@ function sb_email_send_test($to, $email_type) {
     $name = sb_get_user_name($user);
     $image = SB_URL . '/media/user.png';
     $attachments = [['Example link', $image], ['Example link two', $image]];
-    $settings = sb_get_multilingual_setting('emails', 'email-' . $email_type);
-    $email = sb_email_create_content($settings['email-' . $email_type . '-subject'], $settings['email-' . $email_type . '-content'], $attachments, ['message' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam', 'recipient_name' => $name, 'sender_name' => $name, 'sender_profile_image' => $user['profile_image']]);
+    $subject_and_body = sb_email_get_subject_and_body($email_type);
+    $email = sb_email_create_content($subject_and_body[0], $subject_and_body[1], $attachments, ['message' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam', 'recipient_name' => $name, 'sender_name' => $name, 'sender_profile_image' => $user['profile_image']]);
     return sb_email_send($to, $email[0], $email[1]);
 }
 
@@ -195,11 +210,14 @@ function sb_email_piping($force = false) {
         ini_set('default_socket_timeout', 5);
         imap_timeout(IMAP_OPENTIMEOUT, 5);
         $inbox = imap_open('{' . $host . ':' . $port . '/' . ($port == 143 || $port == 993 ? 'imap' : 'pop3') . ($port == 995 || $port == 993 ? '/ssl' : '') . ($port == 995 ? '/novalidate-cert' : '') . '}INBOX', $settings['email-piping-user'], $settings['email-piping-password']);
-        ini_restore('default_socket_timeout');
+        if (function_exists('ini_restore')) {
+            ini_restore('default_socket_timeout');
+        }
         $attachments_path = sb_upload_path(false, true) . '/';
         $attachments_url = sb_upload_path(true, true) . '/';
+        $is_s3 = sb_get_multi_setting('amazon-s3', 'amazon-s3-active') || defined('SB_CLOUD_AWS_S3');
         if ($inbox) {
-            set_time_limit(defined('SB_CLOUD') ? 100 : 1000);
+            set_time_limit(sb_is_cloud() ? 100 : 1000);
             $emails = imap_search($inbox, 'ALL SINCE "' . (empty($last_check) ? $today : $last_check) . '"');
             if ($emails) {
                 $department_id = sb_isset($settings, 'email-piping-department');
@@ -217,7 +235,11 @@ function sb_email_piping($force = false) {
                     } else {
                         $to = $overview->senderaddress;
                         $from = isset($overview->reply_toaddress) ? $overview->reply_toaddress : $overview->fromaddress;
-                        $follow_up = strpos($overview->toaddress, '| SB') ? $overview->toaddress : false;
+                        $toaddress = $overview->toaddress;
+                        if (strpos($toaddress, '?UTF-8') || strpos($toaddress, '7C_')) {
+                            $toaddress = iconv_mime_decode($overview->toaddress, 0, 'UTF-8');
+                        }
+                        $follow_up = strpos($toaddress, '| SB') ? $toaddress : false;
                     }
                     if ($all_emails || $follow_up) {
                         $conversation_id = false;
@@ -227,8 +249,8 @@ function sb_email_piping($force = false) {
                             $conversation_id = substr($conversation_id, 0, strpos($conversation_id, '<') - 1);
                             $conversation_id = explode('-', $conversation_id);
                             $id = hash('sha1', $conversation_id[1] . $overview->date);
-                            $conversation_id = sb_db_escape($conversation_id[0]);
-                            if (!sb_db_get('SELECT id FROM sb_conversations WHERE id = ' . $conversation_id)) {
+                            $conversation_id = sb_db_escape($conversation_id[0], true);
+                            if (!$conversation_id || !sb_db_get('SELECT id FROM sb_conversations WHERE id = ' . $conversation_id)) {
                                 $follow_up = false;
                                 $conversation_id = false;
                             }
@@ -236,7 +258,7 @@ function sb_email_piping($force = false) {
                         if (!$follow_up) {
                             $id = hash('sha1', $from . $overview->date);
                         }
-                        if (!in_array($id, $history)) {
+                        if (!in_array($id, $history) && !in_array($id, $history_new)) {
                             $from_email = mb_strpos($from, '<') ? trim(mb_substr($from, mb_strpos($from, '<') + 1, -1)) : $from;
                             $from_name = mb_strpos($from, '<') && mb_strpos($from, '=') === false && mb_strpos($from, '?') === false ? trim(mb_substr($from, 0, mb_strpos($from, '<'))) : '';
                             if (!$from_name) {
@@ -322,11 +344,18 @@ function sb_email_piping($force = false) {
                                     }
                                 }
                                 if (mb_detect_encoding($message) != 'UTF-8') {
-                                    $message = utf8_encode($message);
+                                    $encoding = mb_detect_encoding($message);
+                                    if ($encoding) {
+                                        $message = mb_convert_encoding($message, 'UTF-8', $encoding);
+                                    }
                                 }
 
                                 // Message formatting
                                 $message = str_replace(['<br>', '<br/>', '<br />'], PHP_EOL, $message);
+                                $position = mb_strpos($message, "|\r\nSB");
+                                if ($position) {
+                                    $message = mb_substr($message, 0, sb_mb_strpos_reverse($message, PHP_EOL, $position));
+                                }
                                 $position = mb_strpos($message, ' | SB');
                                 if ($position) {
                                     $message = mb_substr($message, 0, sb_mb_strpos_reverse($message, PHP_EOL, $position));
@@ -349,7 +378,7 @@ function sb_email_piping($force = false) {
                                 }
                                 $position = mb_strpos($message, 'Outlook');
                                 if ($position) {
-                                    $message = mb_substr($message, 0, mb_strrpos($message, "\n", $position * -1));
+                                    $message = mb_substr($message, 0, mb_strrpos(mb_substr($message, 0, $position), "\n"));
                                 }
                                 $position = mb_strpos($message, 'Content-Transfer-Encoding:');
                                 $position_2 = mb_strpos($message, 'Content-Type: text/plain');
@@ -402,10 +431,19 @@ function sb_email_piping($force = false) {
                                     mkdir($attachments_path, 0755, true);
                                 }
                                 for ($i = 0; $i < count($attachments); $i++) {
-                                    $file_name_attachment = str_replace(['\\', '/', ':', '?', '"', '*', '<', '>', '|'], '', $attachments[$i]['filename']);
-                                    $file_name = rand(1000, 99999) . '_' . $file_name_attachment;
-                                    sb_file($attachments_path . $file_name, $attachments[$i]['attachment']);
-                                    array_push($attachments_2, [$file_name_attachment, $attachments_url . $file_name]);
+                                    $file_name_attachment = sb_sanatize_file_name($attachments[$i]['filename']);
+                                    $file_name = rand(100000, 999999999) . '_' . $file_name_attachment;
+                                    $file_path = $attachments_path . $file_name;
+                                    $file_url = $attachments_url . $file_name;
+                                    sb_file($file_path, $attachments[$i]['attachment']);
+                                    if ($is_s3 && file_exists($file_path)) {
+                                        $url_aws = sb_aws_s3($file_path);
+                                        if (strpos($url_aws, 'http') === 0) {
+                                            $file_url = $url_aws;
+                                            unlink($file_path);
+                                        }
+                                    }
+                                    array_push($attachments_2, [$file_name_attachment, $file_url]);
                                 }
 
                                 // Send message
@@ -573,9 +611,9 @@ function sb_email_get_conversation_code($conversation_id, $count = false, $is_re
         $attachments = sb_isset($message, 'attachments', []);
         if (!empty($message_text) || count($attachments)) {
             if ($translate && $message_text) {
-                $original_message = sb_isset(json_decode($message['payload'], true), 'original-message');
-                if ($original_message) {
-                    $message_text = $original_message;
+                $message = sb_google_get_message_translation($message);
+                if ($message['message'] != $message_text) {
+                    $message_text = $message['message'];
                 } else {
                     $translation = sb_google_translate([$message_text], $translate)[0];
                     if (count($translation)) {
@@ -600,7 +638,7 @@ function sb_email_get_conversation_code($conversation_id, $count = false, $is_re
             $count_final++;
         }
     }
-    return '<div style="max-width:600px;clear:both;">' . ($start ? '<div style="clear:both;width:100%;opacity:.7;padding-bottom:20px;text-align:center;">' . str_replace('{R}', $count, sb_('Only the most recent {R} messages are shown...')) . '</div>' : '') . $code . '<div style="clear:both;"></div></div>';
+    return '<div style="max-width:600px;clear:both;">' . ($start ? '<div style="clear:both;width:100%;opacity:.7;padding-bottom:20px;text-align:left;">' . str_replace('{R}', $count, sb_('Only the most recent {R} messages are shown...')) . '</div>' : '') . $code . '<div style="clear:both;"></div></div>';
 }
 
 function sb_remove_email_cron($conversation_id) {
@@ -653,7 +691,7 @@ function sb_newsletter($email, $first_name = '', $last_name = '') {
                 array_push($header, 'Authorization: Basic ' . base64_encode('user:' . $key));
                 break;
             case 'sendinblue':
-                $url = 'https://api.sendinblue.com/v3/contacts';
+                $url = 'https://api.brevo.com/v3/contacts';
                 $post_fields = ['email' => $email, 'listIds' => [intval($list_id)], 'updateEnabled' => false, 'attributes' => ['FIRSTNAME' => $first_name, 'LASTNAME' => $last_name]];
                 array_push($header, 'api-key: ' . $key);
                 break;
@@ -673,9 +711,10 @@ function sb_newsletter($email, $first_name = '', $last_name = '') {
                 array_push($header, 'Authorization: Basic ' . base64_encode($key));
                 break;
             case 'hubspot':
-                $contact_id = sb_isset(sb_curl('https://api.hubapi.com/crm/v3/objects/contacts?hapikey=' . $key, json_encode(['properties' => ['email' => $email, 'firstname' => $first_name, 'lastname' => $last_name]]), $header), 'id');
+                array_push($header, 'Authorization: Bearer ' . $key);
+                $contact_id = sb_isset(sb_curl('https://api.hubapi.com/crm/v3/objects/contacts', json_encode(['properties' => ['email' => $email, 'firstname' => $first_name, 'lastname' => $last_name]]), $header), 'id');
                 if ($contact_id && $list_id) {
-                    $url = 'https://api.hubapi.com/contacts/v1/lists/' . $list_id . '/add?hapikey=' . $key;
+                    $url = 'https://api.hubapi.com/contacts/v1/lists/' . $list_id . '/add';
                     $post_fields = ['vids' => [$contact_id]];
                 }
                 break;
@@ -733,7 +772,8 @@ function sb_cron_email_notifications() {
     $response = [];
     foreach ($emails as $conversation_id => $value) {
         if ($value) {
-            if (($value[0] == 'agents' || $value[0] == 'all-agents' || strpos($value[0], 'department-') !== false || sb_is_agent(is_numeric($value[0]) ? sb_get_user($value[0]) : $value[0], true)) != sb_is_agent(sb_db_get('SELECT user_type FROM sb_messages, sb_users WHERE conversation_id = ' . sb_db_escape($conversation_id, true) . ' AND sb_users.id = user_id ORDER BY sb_messages.id DESC LIMIT 1'), true)) {
+            $status_code = sb_isset(sb_db_get('SELECT status_code FROM sb_conversations WHERE id = ' . sb_db_escape($conversation_id, true)), 'status_code');
+            if ((($value[5] && $status_code == 2) || (!$value[5] && $status_code == 1)) && ($value[0] == 'agents' || $value[0] == 'all-agents' || strpos($value[0], 'department-') !== false || sb_is_agent(is_numeric($value[0]) ? sb_get_user($value[0]) : $value[0], true)) != sb_is_agent(sb_db_get('SELECT user_type FROM sb_messages, sb_users WHERE conversation_id = ' . sb_db_escape($conversation_id, true) . ' AND sb_users.id = user_id ORDER BY sb_messages.id DESC LIMIT 1'), true)) {
                 $GLOBALS['SB_FORCE_ADMIN'] = true;
                 $response = sb_email_create($value[0], $value[1], $value[2], sb_email_get_conversation_code($conversation_id, 5, $value[5]), $value[3], $value[4], $conversation_id);
                 $GLOBALS['SB_FORCE_ADMIN'] = false;
@@ -766,7 +806,6 @@ function sb_rich_messages_to_html($message) {
     $div_input = '<div style="margin-top:5px;border:1px solid #999999;background:#FFF;color:#c2c2c2;font-size:13px;line-height:14px;border-radius:4px;padding:6px 10px;cursor:text;">';
     if ($shortcode) {
         $shortcode_name = $shortcode['shortcode_name'];
-
         $message = trim(str_replace($shortcode['shortcode'], '', $message) . (empty($shortcode['title']) ? '' : '<b>' . sb_($shortcode['title']) . '</b><br>') . sb_isset($shortcode, 'message', ''));
         if ($message) {
             $message .= '<br><br>';
@@ -810,9 +849,10 @@ function sb_rich_messages_to_html($message) {
             case 'email':
                 $fields = ['placeholder', 'name', 'last-name', 'phone'];
                 for ($i = 0; $i < count($fields); $i++) {
-                    $is_true = $shortcode[$fields[$i]] == 'true';
-                    if ($is_true || $shortcode[$fields[$i]] != 'false') {
-                        $message .= $div_input . ($is_true ? sb_string_slug($fields[$i], 'string') : $shortcode[$fields[$i]]) . '</div>';
+                    $field = $shortcode[$fields[$i]];
+                    $is_true = $field == 'true' || $field === true;
+                    if ($is_true || ($field != 'false' && $field !== false)) {
+                        $message .= $div_input . ($is_true ? sb_string_slug($fields[$i], 'string') : $field) . '</div>';
                     }
                 }
                 break;

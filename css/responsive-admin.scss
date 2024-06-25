@@ -5,7 +5,7 @@
 * RESPONSIVE-ADMIN.SCSS
 * ==========================================================
 *
-* Back-end responsive css. This file is imported only.
+* Back-end responsive CSS. This file is imported only.
 *
 */
 
@@ -134,6 +134,10 @@ body {
         .sb-top-bar > div h2 {
             display: none;
         }
+
+        > div > .sb-tab > .sb-nav > ul {
+            padding-left: 15px;
+        }
     }
 
     .sb-btn {
@@ -160,6 +164,7 @@ body {
         overflow: hidden;
         background: none;
         border-radius: 4px;
+        margin-right: 4px;
         user-select: auto;
         -webkit-tap-highlight-color: rgba(150, 194, 227, 0.44);
 
@@ -202,13 +207,9 @@ body {
             }
         }
 
-        .sb-top-bar {
-            border-bottom: 1px solid $border-color;
-
-            > div:first-child {
-                width: 100%;
-                overflow-x: visible;
-            }
+        .sb-top-bar > div:first-child {
+            width: 100%;
+            overflow-x: visible;
         }
 
         > .sb-scroll-area {
@@ -217,10 +218,8 @@ body {
     }
 }
 
-.sb-area-settings {
-    .sb-save-changes {
-        margin-right: 4px;
-    }
+.sb-area-settings .sb-search-dropdown {
+    display: none;
 }
 
 .sb-board > .sb-admin-list, .sb-area-users, .sb-area-settings {
@@ -297,19 +296,26 @@ body {
     }
 }
 
-.sb-admin .sb-top-bar {
-    .sb-search-btn {
-        margin: 0 !important;
+
+.sb-admin {
+    > main > div > .sb-top-bar {
+        border-bottom: 1px solid $border-color;
     }
 
-    .sb-menu-mobile {
-        height: 45px;
-        right: 5px !important;
+    .sb-top-bar {
+        .sb-search-btn {
+            margin: 0 !important;
+        }
 
-        > i {
-            line-height: 52px;
+        .sb-menu-mobile {
             height: 45px;
-            width: 45px;
+            right: 5px !important;
+
+            > i {
+                line-height: 52px;
+                height: 45px;
+                width: 45px;
+            }
         }
     }
 }
@@ -333,7 +339,11 @@ div ul.sb-menu li, .sb-select ul li {
 
 .sb-select p, .sb-board > .sb-admin-list .sb-scroll-area li p {
     font-size: 17px !important;
-    padding: 0 20px 0 15px;
+    padding: 0 0 0 15px;
+}
+
+.sb-select p {
+    padding-right: 20px;
 }
 
 .sb-title {
@@ -390,6 +400,27 @@ div ul.sb-menu li, .sb-select ul li {
     padding: 0 30px;
     height: 40px;
     line-height: 40px;
+
+    &.sb-icon {
+        padding-left: 50px;
+
+        i {
+            line-height: 40px;
+        }
+
+        &.sb-btn-white {
+            padding-left: 55px;
+
+            i {
+                left: 30px;
+                font-size: 16px;
+
+                &:before {
+                    line-height: 40px;
+                }
+            }
+        }
+    }
 }
 
 .sb-profile-list > ul > li, .sb-panel-details .sb-list-items > div, .sb-panel-details .sb-list-items > a {
@@ -547,7 +578,7 @@ div ul.sb-menu li, .sb-select ul li {
     }
 
     .sb-menu-wide, .sb-nav {
-        > div {
+        > div:not(.sb-btn) {
             display: block;
             position: relative;
             font-weight: 600;
@@ -572,7 +603,7 @@ div ul.sb-menu li, .sb-select ul li {
             display: none;
 
             li {
-                padding: 10px 25px 10px 12px;
+                padding: 10px 25px 10px 15px;
                 margin: 0;
                 font-size: 17px;
                 line-height: 25px;
@@ -644,6 +675,15 @@ div ul.sb-menu li, .sb-select ul li {
         display: block;
 
         > .sb-nav {
+            > ul {
+                display: block;
+
+                i {
+                    top: 8px;
+                    right: 5px;
+                }
+            }
+
             > ul, > .sb-menu-wide > ul {
                 position: static;
                 box-shadow: none;
@@ -660,10 +700,6 @@ div ul.sb-menu li, .sb-select ul li {
             > .sb-menu-wide > div:after {
                 display: none;
             }
-        }
-
-        > .sb-nav > ul {
-            display: block;
         }
     }
 
@@ -913,15 +949,18 @@ div ul.sb-menu li, .sb-select ul li {
         .sb-scroll-area {
 
             li {
-                padding: 13px 12px 14px 12px;
+                padding: 13px 15px 14px 15px;
+                margin: 0;
+                border-radius: 0;
 
                 > div {
                     padding-left: 65px;
-                    align-items: baseline;
+                    align-items: flex-start;
 
                     img {
                         width: 50px;
                         height: 50px;
+                        top: 25px;
                     }
 
                     span {
@@ -929,12 +968,35 @@ div ul.sb-menu li, .sb-select ul li {
                     }
                 }
 
+                .sb-profile .sb-time {
+                    margin-top: 0;
+                    line-height: 25px;
+                }
+
+                .sb-notification-counter {
+                    bottom: 12px;
+                    right: 14px;
+                }
+
                 p {
                     white-space: nowrap;
                     text-overflow: ellipsis;
                     padding-left: 65px;
-                    margin: 0 !important;
+                    margin: 0;
                     height: 20px !important;
+                }
+
+                > span {
+                    right: 10px;
+                }
+
+                &:before {
+                    left: 7px;
+                }
+
+                &:after {
+                    left: 15px;
+                    right: 15px;
                 }
             }
         }
@@ -944,11 +1006,11 @@ div ul.sb-menu li, .sb-select ul li {
         height: 100%;
 
         .sb-top {
-            min-height: 30px;
+            min-height: 46px;
             padding: 0;
 
             > a {
-                line-height: 19px;
+                line-height: 45px;
                 font-size: 19px;
                 padding: 10px;
                 max-width: calc(100% - 120px);
@@ -1060,29 +1122,40 @@ div ul.sb-menu li, .sb-select ul li {
 
     .sb-user-details {
         position: fixed;
-        z-index: 2;
         background: $white;
         right: 0;
         left: 0;
         bottom: 0;
-        top: 45px;
-        height: calc(100% + 25px);
+        top: 0;
+        height: calc(100% + 85px);
         border: none;
-        border-top: 1px solid #d4d4d4;
         min-width: 0;
         width: auto;
+        z-index: 96;
         display: none;
 
         .sb-top {
             display: none;
         }
 
+        .sb-profile {
+            margin: 20px 15px 0 8px;
+        }
+
         &.sb-active {
             display: block;
             animation: sb-fade-left-animation .5s;
+
+            .sb-user-details-close {
+                display: block;
+                position: fixed;
+                top: 9px;
+                right: 15px;
+            }
         }
     }
 }
+
 
 .sb-area-conversations .sb-search-btn > input {
     top: 2px;
@@ -1135,17 +1208,13 @@ div ul.sb-menu li, .sb-select ul li {
     display: none;
 }
 
-[data-value="panel"].sb-active i {
-    transform: rotate(180deg);
-    display: block;
-}
-
 /*
 
 # USERS AREA
 ==========================================================
 
 */
+
 .sb-area-users {
 
     .sb-top-bar {
@@ -1365,12 +1434,6 @@ div ul.sb-menu li, .sb-select ul li {
     width: calc(100% - 80px);
 }
 
-.sb-articles-area {
-    > .sb-content {
-        padding-top: 30px;
-    }
-}
-
 .sb-translations {
     display: block;
 
@@ -1448,6 +1511,28 @@ div ul.sb-menu li, .sb-select ul li {
 
 .daterangepicker .drp-calendar {
     max-width: none;
+}
+
+/*
+
+# ARTICLES AREA
+==========================================================
+
+*/
+
+.sb-area-articles {
+    .sb-add-article, .sb-add-category {
+        margin-left: 15px !important;
+    }
+
+    > .sb-tab > .sb-content {
+        padding: 0 15px;
+        width: auto;
+    }
+}
+
+.sb-menu-articles .sb-docs {
+    padding: 15px;
 }
 
 /*

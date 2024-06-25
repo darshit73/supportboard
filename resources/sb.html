@@ -4,7 +4,7 @@
         <input type="text" />
     </div>
     <p>
-        Please enter your Envato Purchase Code to enter the administration area. You can only use it on up to 2 live domains and on localhost. 
+        Please enter your Envato Purchase Code to enter the administration area. Restricted to one live domain, a testing secondary domain, or localhost.
         Save the code in Settings > Miscellaneous > Envato Purchase Code to to hide this message permanently.
         <a class="btn-text" href="https://help.market.envato.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-" rel="nofollow" target="_blank">Where is my purchase code?</a>
     </p>
@@ -36,9 +36,7 @@
     var SB_DISABLED = true;
     (function ($) {
         let button;
-
         sbvpc('auto');
-
         $(document).ready(function () {
             button = $('.sb-btn');
             $(button).on('click', function () {
@@ -47,20 +45,25 @@
         });
 
         function sbvpc(code) {
-            if (!code ) return;
-            if ($(button).hasClass('sb-loading')) return;
+            if (!code || $(button).hasClass('sb-loading')) {
+                return;
+            }
             $(button).addClass('sb-loading');
             $.ajax({
                 method: 'POST',
                 url: SB_AJAX_URL,
                 data: { function: 'ver' + 'ification-cookie', code: code, domain: SB_URL }
             }).done((response) => {
-                response = JSON.parse(response);
+                if (typeof response === 'string' || response instanceof String) {
+                    response = JSON.parse(response);
+                }
                 if (response[1][0]) {
-                    SBF.cookie('SA_' + 'VGCKMENS', response[1][1], 3650, 'set');
+                    SBF.cookie('SA_' + 'VGCKMENS', response[1][1], 60, 'set');
                     location.reload();
                 } else {
-                    if (response[1][1]) alert(response[1][1]);
+                    if (response[1][1]) {
+                        alert(response[1][1]);
+                    }
                     $(button).removeClass('sb-loading');
                     $('.sb-hide').removeClass('sb-hide');
                 }

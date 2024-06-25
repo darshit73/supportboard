@@ -5,11 +5,11 @@
  * API.PHP
  * ==========================================================
  *
- * API main file. This file listens the POST queries and return the result. © 2017-2023 board.support. All rights reserved.
+ * API main file. This file listens the POST queries and return the result. © 2017-2024 board.support. All rights reserved.
  *
  */
 
-require('functions.php');
+require_once('functions.php');
 
 // CRON JOB
 if (isset($_GET['piping'])) {
@@ -49,14 +49,15 @@ if (isset($_POST['AccountSid']) && isset($_POST['From'])) {
         }
         if ($message && (sb_get_multi_setting('google', 'google-language-detection') || sb_get_multi_setting('dialogflow-language-detection', 'dialogflow-language-detection-active'))) { // Deprecated: sb_get_multi_setting('dialogflow-language-detection', 'dialogflow-language-detection-active')
             $detected_language = sb_google_language_detection($message);
-            if (!empty($detected_language))
+            if (!empty($detected_language)) {
                 $extra['language'] = [$detected_language, 'Language'];
+            }
         }
         $user_id = sb_add_user([], $extra);
         $user = sb_get_user($user_id);
     } else {
         $user_id = $user['id'];
-        $conversation_id = sb_isset(sb_db_get('SELECT id FROM sb_conversations WHERE user_id = ' . $user_id . ' ORDER BY id DESC LIMIT 1'), 'id');
+        $conversation_id = sb_isset(sb_db_get('SELECT id FROM sb_conversations WHERE user_id = ' . $user_id . ' AND source = "tm" ORDER BY id DESC LIMIT 1'), 'id');
     }
     $GLOBALS['SB_LOGIN'] = $user;
 
@@ -122,8 +123,13 @@ if (isset($_POST['AccountSid']) && isset($_POST['From'])) {
 }
 
 // API
-if (!isset($_POST['function']))
+$body = json_decode(file_get_contents('php://input'), true);
+if ($body) {
+    $_POST = array_merge($_POST, $body);
+}
+if (!isset($_POST['function'])) {
     die(json_encode(['status' => 'error', 'response' => 'missing-function-name', 'message' => 'Function name is required. Get it from the docs.']));
+}
 define('SB_API', true);
 sb_process_api();
 
@@ -201,7 +207,7 @@ function sb_process_api() {
         'get-articles' => [],
         'get-articles-categories' => [],
         'save-articles-categories' => ['categories'],
-        'save-articles' => ['articles'],
+        'save-article' => ['article'],
         'search-articles' => ['search'],
         'article-ratings' => [],
         'get-versions' => [],
@@ -288,6 +294,14 @@ function sb_process_api() {
         'import-settings' => ['file_url'],
         'count-conversations' => [],
         'check-conversations-assignment' => ['conversation_ids'],
+        'gbm-send-message' => ['google_conversation_id'],
+        'messenger-send-message' => ['psid', 'facebook_page_id'],
+        'whatsapp-send-message' => ['to'],
+        'telegram-send-message' => ['chat_id'],
+        'viber-send-message' => ['viber_id'],
+        'line-send-message' => ['line_id'],
+        'wechat-send-message' => ['open_id'],
+        'init-articles' => []
     ];
 
     if (!isset($functions[$function_name])) {
@@ -349,6 +363,8 @@ function sb_process_api() {
             $json_keys = ['exclude_id'];
             break;
         case 'update-user':
+            $json_keys = ['settings_extra'];
+            break;
         case 'add-user':
             $json_keys = ['extra'];
             break;
@@ -370,6 +386,13 @@ function sb_process_api() {
         case 'update-messages-status':
             $json_keys = ['message_ids'];
             break;
+        case 'gbm-send-message':
+        case 'messenger-send-message':
+        case 'whatsapp-send-message':
+        case 'telegram-send-message':
+        case 'viber-send-message':
+        case 'line-send-message':
+        case 'wechat-send-message':
         case 'messaging-platforms-send-message':
         case 'send-email':
         case 'send-slack-message':
@@ -388,8 +411,8 @@ function sb_process_api() {
         case 'woocommerce-get-products':
             $json_keys = ['filters'];
             break;
-        case 'save-articles':
-            $json_keys = ['articles'];
+        case 'save-article':
+            $json_keys = ['article'];
             break;
         case 'pusher-trigger':
             $json_keys = ['data'];
@@ -399,8 +422,9 @@ function sb_process_api() {
             break;
     }
     for ($i = 0; $i < count($json_keys); $i++) {
-        if (isset($_POST[$json_keys[$i]])) {
-            $_POST[$json_keys[$i]] = json_decode($_POST[$json_keys[$i]], true);
+        $value = sb_isset($_POST, $json_keys[$i]);
+        if ($value && is_string($value)) {
+            $_POST[$json_keys[$i]] = json_decode($value, true);
         }
     }
 
@@ -414,7 +438,7 @@ function sb_process_api() {
         case 'add-user':
             $values = ['first_name', 'last_name', 'email', 'profile_image', 'password', 'user_type', 'department'];
             $settings = [];
-            $extra = isset($_POST['extra']) ? $_POST['extra'] : [];
+            $extra = sb_isset($_POST, $function_name == 'update-user' ? 'settings_extra' : 'extra', []);
             for ($i = 0; $i < count($values); $i++) {
                 if (isset($_POST[$values[$i]])) {
                     $settings[$values[$i]] = [$_POST[$values[$i]]];
@@ -429,6 +453,12 @@ function sb_process_api() {
             die(sb_api_success(sb_get_bot_id()));
         case 'open-ai-curl':
             die(sb_api_success(sb_open_ai_curl($_POST['url_part'], sb_isset($_POST, 'post_fields'), sb_isset($_POST, 'type'))));
+        case 'init-articles':
+            ob_start();
+            require('articles.php');
+            $content = (empty($_POST['nojquery']) ? '<script src="' . SB_URL . '/js/min/jquery.min.js"></script>' : '') . (empty($_POST['nojs']) ? '<script src="' . SB_URL . '/js/min/main.min.js"></script>' : '') . '<link href="' . SB_URL . '/css/main.css" type="text/css" rel="stylesheet"><link href="' . SB_URL . '/css/articles.css" type="text/css" rel="stylesheet">';
+            $content .= ob_get_clean();
+            die($content);
         default:
             require_once('ajax.php');
             break;
@@ -446,11 +476,13 @@ function sb_process_api() {
 
 function sb_api_error($error, $die = true) {
     $response = ['status' => 'error', 'response' => $error->code()];
-    if ($error->message())
+    if ($error->message()) {
         $response['message'] = $error->message();
+    }
     $response = json_encode($response);
-    if ($die)
+    if ($die) {
         die($response);
+    }
     return $response;
 }
 

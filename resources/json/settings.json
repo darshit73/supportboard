@@ -4,7 +4,8 @@
       "type": "checkbox",
       "id": "chat-login-init",
       "title": "Login initialization",
-      "content": "Initialize and display the chat widget only when the user is logged in."
+      "content": "Initialize and display the chat widget only when the user is logged in.",
+      "keywords": ""
     },
     {
       "type": "checkbox",
@@ -44,6 +45,12 @@
     },
     {
       "type": "checkbox",
+      "id": "rtl",
+      "title": "RTL",
+      "content": "Activate the Right-To-Left (RTL) reading layout."
+    },
+    {
+      "type": "checkbox",
       "id": "auto-open",
       "title": "Open automatically",
       "content": "Open the chat window automatically when a new message is received."
@@ -56,27 +63,15 @@
     },
     {
       "type": "checkbox",
-      "id": "close-chat",
-      "title": "Close chat",
-      "content": "Allow the user to archive a conversation and hide archived conversations."
+      "id": "disable-voice-messages",
+      "title": "Disable voice messages",
+      "content": "Disable voice message capabilities within the chat."
     },
     {
       "type": "checkbox",
-      "id": "articles-active",
-      "title": "Articles",
-      "content": "Display the articles section in the dashboard area."
-    },
-    {
-      "type": "text",
-      "id": "articles-title",
-      "title": "Articles title",
-      "content": "Rename the articles archive panel title. Default is 'Help Center'."
-    },
-    {
-      "type": "text",
-      "id": "articles-button-link",
-      "title": "Articles button link",
-      "content": "Add a link to the articles button."
+      "id": "close-chat",
+      "title": "Close chat",
+      "content": "Allow the user to archive a conversation and hide archived conversations."
     },
     {
       "type": "checkbox",
@@ -94,6 +89,11 @@
           "type": "checkbox",
           "id": "agents-menu-active",
           "title": "Active"
+        },
+        {
+          "type": "checkbox",
+          "id": "agents-menu-force-one",
+          "title": "One conversation per agent"
         },
         {
           "type": "text",
@@ -161,7 +161,7 @@
         {
           "type": "text",
           "id": "messaging-channels-em",
-          "title": "Emaill"
+          "title": "Email"
         },
         {
           "type": "text",
@@ -176,7 +176,7 @@
       "type": "multi-input",
       "id": "chat-timetable",
       "title": "Offline message",
-      "content": "Notify the user when their message is sent outside of the scheduled office hours or or all agents are offline.",
+      "content": "Notify the user when their message is sent outside of the scheduled office hours or all agents are offline.",
       "help": "https://board.support/docs/#offline-message",
       "value": [
         {
@@ -227,6 +227,11 @@
           "type": "checkbox",
           "id": "privacy-active",
           "title": "Active"
+        },
+        {
+          "type": "checkbox",
+          "id": "privacy-disable-channels",
+          "title": "Disable for messaging channels"
         },
         {
           "type": "text",
@@ -366,6 +371,11 @@
         },
         {
           "type": "checkbox",
+          "id": "follow-disable-channels",
+          "title": "Disable for messaging channels"
+        },
+        {
+          "type": "checkbox",
           "id": "follow-name",
           "title": "Name"
         },
@@ -448,6 +458,11 @@
         },
         {
           "type": "checkbox",
+          "id": "subscribe-disable-channels",
+          "title": "Disable for messaging channels"
+        },
+        {
+          "type": "checkbox",
           "id": "subscribe-sound",
           "title": "Sound"
         },
@@ -510,6 +525,18 @@
   ],
   "admin": [
     {
+      "type": "checkbox",
+      "id": "collapse",
+      "title": "Collapse panels",
+      "content": "Automatically collapse the conversation details panel, and other panels, of the admin area."
+    },
+    {
+      "type": "checkbox",
+      "id": "hide-conversation-details",
+      "title": "Hide conversation details panel",
+      "content": "Automatically hide the conversation details panel."
+    },
+    {
       "type": "text",
       "id": "admin-title",
       "title": "Admin title",
@@ -534,12 +561,6 @@
       "id": "login-message",
       "title": "Admin login message",
       "content": "Replace the admin login page message."
-    },
-    {
-      "type": "checkbox",
-      "id": "collapse",
-      "title": "Collapse panels",
-      "content": "Automatically collapse the profile details panel, and other panels, of the admin area."
     },
     {
       "type": "checkbox",
@@ -576,6 +597,11 @@
           "type": "checkbox",
           "id": "agents-users-area",
           "title": "Users area"
+        },
+        {
+          "type": "checkbox",
+          "id": "agents-articles-area",
+          "title": "Articles area"
         },
         {
           "type": "checkbox",
@@ -628,6 +654,11 @@
         },
         {
           "type": "checkbox",
+          "id": "supervisor-articles-area",
+          "title": "Articles area"
+        },
+        {
+          "type": "checkbox",
           "id": "supervisor-edit-user",
           "title": "Edit user"
         },
@@ -666,40 +697,91 @@
       "content": "Show the profile image of agents and users within the conversation."
     },
     {
-      "type": "checkbox",
-      "id": "disable-notes",
-      "title": "Disable notes",
-      "content": "Disable the internal notes."
+      "type": "multi-input",
+      "id": "disable",
+      "title": "Disable features",
+      "content": "Disable any features that you don't need.",
+      "value": [
+        {
+          "type": "checkbox",
+          "id": "disable-channels-filter",
+          "title": "Channels filter"
+        },
+        {
+          "type": "checkbox",
+          "id": "disable-filters",
+          "title": "Filters"
+        },
+        {
+          "type": "checkbox",
+          "id": "disable-attachments",
+          "title": "Attachments list"
+        },
+        {
+          "type": "checkbox",
+          "id": "disable-tags",
+          "title": "Tags"
+        },
+        {
+          "type": "checkbox",
+          "id": "disable-notes",
+          "title": "Notes"
+        }
+      ]
     },
     {
-      "type": "checkbox",
-      "id": "disable-tags",
-      "title": "Disable tags",
-      "content": "Disable the tags."
+      "type": "multi-input",
+      "id": "notes-settings",
+      "title": "Notes settings",
+      "content": "Manage the notes settings.",
+      "help": "https://board.support/docs/#notes",
+      "value": [
+        {
+          "type": "checkbox",
+          "id": "notes-hide-name",
+          "title": "Hide username"
+        }
+      ]
     },
     {
-      "type": "checkbox",
-      "id": "disable-filters",
-      "title": "Disable filters",
-      "content": "Disable the conversation filters."
+      "type": "multi-input",
+      "id": "tags-settings",
+      "title": "Tags settings",
+      "content": "Manage the tags settings.",
+      "help": "https://board.support/docs/#tags",
+      "value": [
+        {
+          "type": "checkbox",
+          "id": "tags-show",
+          "title": "Display in conversation list"
+        }
+      ]
     },
     {
-      "type": "checkbox",
-      "id": "disable-channels-filter",
-      "title": "Disable channels filter",
-      "content": "Disable the channels filter."
-    },
-    {
-      "type": "checkbox",
-      "id": "disable-attachments",
-      "title": "Disable attachments list",
-      "content": "Disable the attachments list."
+      "type": "repeater",
+      "id": "tags",
+      "title": "Tags",
+      "content": "Add and manage tags.",
+      "help": "https://board.support/docs/#tags",
+      "items": [
+        {
+          "type": "text",
+          "name": "Name",
+          "id": "tag-name"
+        },
+        {
+          "type": "color-palette",
+          "name": "Color",
+          "id": "tag-color"
+        }
+      ]
     },
     {
       "type": "multi-input",
       "id": "transcript",
       "title": "Transcript",
       "content": "Transcript settings.",
+      "help": "https://board.support/docs/#transcript",
       "value": [
         {
           "type": "select",
@@ -775,7 +857,7 @@
       "type": "text",
       "id": "manifest-url",
       "title": "Manifest file URL",
-      "content": "Use this option to change the PWA icon.  See the docs for more details.",
+      "content": "Use this option to change the PWA icon. See the docs for more details.",
       "help": "https://board.support/docs/#pwa"
     },
     {
@@ -793,37 +875,22 @@
   ],
   "notifications": [
     {
-      "type": "select",
-      "id": "chat-sound",
-      "title": "Sounds",
-      "content": "Play a sound when a user receives an incoming message or sends an outgoing message.",
-      "value": [
-        [ "n", "None" ],
-        [ "a", "All messages" ],
-        [ "aa", "Always all messages" ],
-        [ "i", "Incoming messages only" ],
-        [ "ia", "Always incoming messages only" ]
-      ]
-    },
-    {
-      "type": "select",
-      "id": "chat-sound-admin",
-      "title": "Sounds - admin",
-      "content": "Play a sound when an agent receives an incoming message or sends an outgoing message.",
-      "value": [
-        [ "n", "None" ],
-        [ "a", "All messages" ],
-        [ "i", "Incoming messages only" ],
-        [ "c", "Incoming conversations only" ],
-        [ "ic", "Incoming conversations and messages" ]
-      ]
-    },
-    {
       "type": "multi-input",
       "id": "sound-settings",
       "title": "Sound settings",
-      "content": "Adjust sound settings.",
+      "content": "Play a sound for new messages and conversations.",
+      "help": "https://board.support/docs/#sound",
       "value": [
+        {
+          "type": "checkbox",
+          "id": "sound-settings-active",
+          "title": "Active"
+        },
+        {
+          "type": "checkbox",
+          "id": "sound-settings-active-admin",
+          "title": "Active - admin"
+        },
         {
           "type": "select",
           "id": "sound-settings-volume",
@@ -905,37 +972,16 @@
     },
     {
       "type": "checkbox",
-      "id": "notify-agent-email",
-      "title": "Agent email notifications",
-      "content": "Send an email to an agent when a user replies and the agent is offline. An email is automatically sent to all agents for new conversations.",
-      "help": "https://board.support/docs/#email"
-    },
-    {
-      "type": "checkbox",
-      "id": "notify-user-email",
-      "title": "User email notifications",
-      "content": "Send an email to the user when an agent replies and the user is offline.",
-      "help": "https://board.support/docs/#email"
-    },
-    {
-      "type": "checkbox",
-      "id": "stop-notify-admins",
-      "title": "Do not send email notifications to admins",
-      "content": "Prevent admins from receiving email notifications."
-    },
-    {
-      "type": "checkbox",
-      "id": "notify-email-cron",
-      "title": "Email notifications via cron job",
-      "content": "Enable this option if email notifications are sent via cron job.",
-      "help": "https://board.support/docs/#email-cron"
-    },
-    {
-      "type": "checkbox",
       "id": "online-users-notification",
       "title": "Online users notification",
       "content": "Show a notification and play a sound when a new user is online.",
       "help": "https://board.support/docs/#users-info"
+    },
+    {
+      "type": "checkbox",
+      "id": "away-mode",
+      "title": "Away mode",
+      "content": "Set the offline status automatically when the agent or admin remains inactive in the admin area for at least 10 minutes."
     },
     {
       "type": "select",
@@ -963,49 +1009,20 @@
     },
     {
       "type": "multi-input",
-      "setting": "emails",
-      "id": "email-user",
-      "title": "User notification email",
-      "content": "Email template for the notification email that is sent to a user when an agent replies. You can use text, HTML, and the following merge fields: {conversation_url_parameter}, {recipient_name}, {sender_name}, {sender_profile_image}, {message}, {attachments}.",
-      "value": [
-        {
-          "type": "text",
-          "id": "email-user-subject",
-          "title": "Subject"
-        },
-        {
-          "type": "textarea",
-          "id": "email-user-content",
-          "title": "Content"
-        }
-      ]
-    },
-    {
-      "type": "multi-input",
-      "setting": "emails",
-      "id": "email-agent",
-      "title": "Agent notification email",
-      "content": "Template for the email sent to an agent when a user sends a new message. You can use text, HTML, and the following merge fields: {conversation_link}, {recipient_name}, {sender_name}, {sender_profile_image}, {message}, {attachments}.",
-      "value": [
-        {
-          "type": "text",
-          "id": "email-agent-subject",
-          "title": "Subject"
-        },
-        {
-          "type": "textarea",
-          "id": "email-agent-content",
-          "title": "Content"
-        }
-      ]
-    },
-    {
-      "type": "multi-input",
       "id": "push-notifications",
       "title": "Push notifications",
-      "content": "Push notifications settings. Enter the Pusher Beams details.",
+      "content": "Push notifications settings.",
       "help": "https://board.support/docs/#push",
       "value": [
+        {
+          "type": "select",
+          "id": "push-notifications-provider",
+          "title": "Provider",
+          "value": [
+            [ "pusher", "Pusher" ],
+            [ "onesignal", "OneSignal" ]
+          ]
+        },
         {
           "type": "checkbox",
           "id": "push-notifications-active",
@@ -1030,6 +1047,30 @@
           "type": "text",
           "id": "push-notifications-sw-url",
           "title": "Service Worker URL"
+        },
+        {
+          "type": "text",
+          "id": "push-notifications-onesignal-app-id",
+          "title": "App ID"
+        },
+        {
+          "type": "password",
+          "id": "push-notifications-onesignal-api-key",
+          "title": "API key"
+        },
+        {
+          "type": "button",
+          "id": "push-notifications-sw-path",
+          "title": "Service Worker path",
+          "button-text": "Get Service Worker path",
+          "button-url": "#"
+        },
+        {
+          "type": "button",
+          "id": "push-notifications-btn",
+          "title": "Subscribe",
+          "button-text": "Subscribe",
+          "button-url": "#"
         }
       ]
     },
@@ -1087,16 +1128,95 @@
     {
       "type": "input-button",
       "id": "test-sms-user",
-      "title": "Send a user text message notifcation",
+      "title": "Send a user text message notification",
       "content": "Send a text message to the provided phone number.",
       "button-text": "Send text message"
     },
     {
       "type": "input-button",
       "id": "test-sms-agent",
-      "title": "Send an agent text message notifcation",
+      "title": "Send an agent text message notification",
       "content": "Send a text message to the provided phone number.",
       "button-text": "Send text message"
+    },
+    {
+      "type": "checkbox",
+      "id": "notify-agent-email",
+      "title": "Agent email notifications",
+      "content": "Send an email to an agent when a user replies and the agent is offline. An email is automatically sent to all agents for new conversations.",
+      "help": "https://board.support/docs/#email"
+    },
+    {
+      "type": "checkbox",
+      "id": "notify-user-email",
+      "title": "User email notifications",
+      "content": "Send an email to the user when an agent replies and the user is offline.",
+      "help": "https://board.support/docs/#email"
+    },
+    {
+      "type": "checkbox",
+      "id": "stop-notify-admins",
+      "title": "Do not send email notifications to admins",
+      "content": "Prevent admins from receiving email notifications."
+    },
+    {
+      "type": "checkbox",
+      "id": "notify-email-cron",
+      "title": "Email notifications via cron job",
+      "content": "Enable this option if email notifications are sent via cron job.",
+      "help": "https://board.support/docs/#email-cron"
+    },
+    {
+      "type": "multi-input",
+      "setting": "emails",
+      "id": "email-user",
+      "title": "User notification email",
+      "content": "Email template for the notification email that is sent to a user when an agent replies. You can use text, HTML, and the following merge fields: {conversation_url_parameter}, {recipient_name}, {sender_name}, {sender_profile_image}, {message}, {attachments}.",
+      "value": [
+        {
+          "type": "text",
+          "id": "email-user-subject",
+          "title": "Subject"
+        },
+        {
+          "type": "textarea",
+          "id": "email-user-content",
+          "title": "Content"
+        }
+      ]
+    },
+    {
+      "type": "multi-input",
+      "setting": "emails",
+      "id": "email-agent",
+      "title": "Agent notification email",
+      "content": "Template for the email sent to an agent when a user sends a new message. You can use text, HTML, and the following merge fields: {conversation_link}, {recipient_name}, {sender_name}, {sender_profile_image}, {message}, {attachments}.",
+      "value": [
+        {
+          "type": "text",
+          "id": "email-agent-subject",
+          "title": "Subject"
+        },
+        {
+          "type": "textarea",
+          "id": "email-agent-content",
+          "title": "Content"
+        }
+      ]
+    },
+    {
+      "type": "input-button",
+      "id": "test-email-user",
+      "title": "Send a user email notification",
+      "content": "Send an email notification to the provided email address.",
+      "button-text": "Send email"
+    },
+    {
+      "type": "input-button",
+      "id": "test-email-agent",
+      "title": "Send an agent email notification",
+      "content": "Send an email notification to the provided email address.",
+      "button-text": "Send email"
     },
     {
       "type": "multi-input",
@@ -1135,20 +1255,6 @@
           "title": "Sender name"
         }
       ]
-    },
-    {
-      "type": "input-button",
-      "id": "test-email-user",
-      "title": "Send a user email notifcation",
-      "content": "Send an email notification to the provided email address.",
-      "button-text": "Send email"
-    },
-    {
-      "type": "input-button",
-      "id": "test-email-agent",
-      "title": "Send an agent email notifcation",
-      "content": "Send an email notification to the provided email address.",
-      "button-text": "Send email"
     },
     {
       "type": "multi-input",
@@ -1810,12 +1916,6 @@
     },
     {
       "type": "checkbox",
-      "id": "rtl",
-      "title": "RTL",
-      "content": "Activate the Right-To-Left (RTL) reading layout."
-    },
-    {
-      "type": "checkbox",
       "id": "display-users-thumb",
       "title": "Display user's profile image",
       "content": "Display the user's profile image within the chat."
@@ -1941,19 +2041,6 @@
   ],
   "miscellaneous": [
     {
-      "type": "text",
-      "id": "envato-purchase-code",
-      "title": "Envato Purchase Code",
-      "content": "Enter your Envato Purchase Code to activate automatic updates and unlock all the features.",
-      "help": "https://help.market.envato.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"
-    },
-    {
-      "type": "checkbox",
-      "id": "auto-updates",
-      "title": "Automatic updates",
-      "content": "Automatically check and install new updates. A valid Envato Purchase Code and valid apps's license keys are required."
-    },
-    {
       "type": "multi-input",
       "id": "webhooks",
       "title": "Webhooks",
@@ -1981,6 +2068,19 @@
           "title": "Active webhooks"
         }
       ]
+    },
+    {
+      "type": "text",
+      "id": "envato-purchase-code",
+      "title": "Envato Purchase Code",
+      "content": "Enter your Envato Purchase Code to activate automatic updates and unlock all the features.",
+      "help": "https://help.market.envato.com/hc/en-us/articles/202822600-Where-Is-My-Purchase-Code-"
+    },
+    {
+      "type": "checkbox",
+      "id": "auto-updates",
+      "title": "Automatic updates",
+      "content": "Automatically check and install new updates. A valid Envato Purchase Code and valid apps's license keys are required."
     },
     {
       "type": "multi-input",
@@ -2034,7 +2134,7 @@
           "title": "Service",
           "value": [
             [ "mailchimp", "Mailchimp" ],
-            [ "sendinblue", "Sendinblue" ],
+            [ "sendinblue", "Brevo" ],
             [ "sendgrid", "SendGrid" ],
             [ "elasticemail", "Elastic Email" ],
             [ "campaignmonitor", "Campaign Monitor" ],
@@ -2074,6 +2174,55 @@
       "content": "Set the UTC offset of the office hours timetable. The correct value can be negative, and it's generated automatically once you click this input field, if it's empty."
     },
     {
+      "type": "multi-input",
+      "id": "departments-settings",
+      "title": "Departments settings",
+      "content": "Manage here the departments settings.",
+      "help": "https://board.support/docs/#departments",
+      "value": [
+        {
+          "type": "checkbox",
+          "id": "departments-dashboard",
+          "title": "Display in dashboard"
+        },
+        {
+          "type": "checkbox",
+          "id": "departments-images",
+          "title": "Display images"
+        },
+        {
+          "type": "checkbox",
+          "id": "departments-show-list",
+          "title": "Display in conversation list"
+        },
+        {
+          "type": "checkbox",
+          "id": "departments-force-one",
+          "title": "One conversation per department"
+        },
+        {
+          "type": "text",
+          "id": "departments-label",
+          "title": "Label"
+        },
+        {
+          "type": "text",
+          "id": "departments-single-label",
+          "title": "Single label"
+        },
+        {
+          "type": "text",
+          "id": "departments-single-label",
+          "title": "Single label"
+        },
+        {
+          "type": "text",
+          "id": "departments-title",
+          "title": "Dashboard title"
+        }
+      ]
+    },
+    {
       "type": "repeater",
       "id": "departments",
       "title": "Departments",
@@ -2102,44 +2251,10 @@
     },
     {
       "type": "multi-input",
-      "id": "departments-settings",
-      "title": "Departments settings",
-      "content": "Manage here the departments settings.",
-      "help": "https://board.support/docs/#departments",
-      "value": [
-        {
-          "type": "checkbox",
-          "id": "departments-dashboard",
-          "title": "Display in dashboard"
-        },
-        {
-          "type": "checkbox",
-          "id": "departments-images",
-          "title": "Display images"
-        },
-        {
-          "type": "text",
-          "id": "departments-label",
-          "title": "Label"
-        },
-        {
-          "type": "text",
-          "id": "departments-single-label",
-          "title": "Single label"
-        },
-        {
-          "type": "text",
-          "id": "departments-title",
-          "title": "Dashboard title"
-        }
-      ]
-    },
-    {
-      "type": "multi-input",
       "id": "queue",
       "title": "Queue",
-      "content": "Distribute conversations proportionately between agents and notify visitors of their position within the queue. Response time is in minutes. You can use the following merge fields in the message: {position}, {minutes}. They will be replaced by the real values in real-time.",
-      "help": "https://board.support/docs/#queue",
+      "content": "Distribute conversations proportionately between agents and notify visitors of their position within the queue.",
+      "help": "https://board.support/docs/#queue-routing",
       "value": [
         {
           "type": "checkbox",
@@ -2177,7 +2292,8 @@
       "type": "checkbox",
       "id": "routing",
       "title": "Routing",
-      "content": "Distribute conversations proportionately between agents, and block an agent from viewing the conversations of the other agents."
+      "content": "Distribute conversations proportionately between agents, and block an agent from viewing the conversations of the other agents.",
+      "help": "https://board.support/docs/#queue-routing"
     },
     {
       "type": "multi-input",
@@ -2308,6 +2424,12 @@
       "button-url": "#"
     },
     {
+      "type": "text",
+      "id": "ip-ban",
+      "title": "IP banning",
+      "content": "Restrict chat access by blocking IPs. List IPs with commas."
+    },
+    {
       "type": "button",
       "id": "sb-path",
       "title": "Support Board Path",
@@ -2338,6 +2460,45 @@
       "content": "Import all settings.",
       "button-text": "Import settings",
       "button-url": "#"
+    }
+  ],
+  "articles": [
+    {
+      "type": "checkbox",
+      "id": "articles-active",
+      "title": "Display in dashboard",
+      "content": "Show the articles panel on the chat dashboard."
+    },
+    {
+      "type": "checkbox",
+      "id": "articles-categories",
+      "title": "Display categories",
+      "content": "Show the categories instead of the articles list."
+    },
+    {
+      "type": "text",
+      "id": "articles-title",
+      "title": "Panel title",
+      "content": "Set the articles panel title. Default is 'Help Center'."
+    },
+    {
+      "type": "text",
+      "id": "articles-button-link",
+      "title": "Articles button link",
+      "content": "Customize the link for the 'All articles' button."
+    },
+    {
+      "type": "text",
+      "id": "articles-page-url",
+      "title": "Articles page URL",
+      "content": "Enter the URL of the articles page."
+    },
+    {
+      "type": "checkbox",
+      "id": "articles-url-rewrite",
+      "title": "URL rewrite",
+      "content": "Change the default URLs with user-friendly URLs.",
+      "help": "https://board.support/docs/#articles-url-rewrite"
     }
   ]
 }

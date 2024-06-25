@@ -30,7 +30,7 @@ rename(
 if ($argc > 1) {
     if (!@is_readable($argv[1])) {
         echo 'Could not read the private key file:', $argv[1], "\n";
-        exit(255);
+        exit(191);
     }
     $pkeyFile = file_get_contents($argv[1]);
     
@@ -52,6 +52,6 @@ if ($argc > 1) {
         }
     } else {
         echo 'An error occurred reading the private key from OpenSSL.', "\n";
-        exit(255);
+        exit(191);
     }
 }

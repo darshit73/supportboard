@@ -5,7 +5,7 @@
  * ADMINISTRATION PAGE
  * ==========================================================
  *
- * Administration page to manage the settings and reply to the users.
+ * Administration page to manage the settings and reply to the users. © 2017-2024 board.support. All rights reserved.
  *
  */
 
@@ -23,6 +23,9 @@ if (file_exists('config.php')) {
     require('include/functions.php');
     $is_cloud = sb_is_cloud();
     if ($is_cloud) {
+        if (isset($_GET['reset-login'])) {
+            sb_cloud_reset_login();
+        }
         sb_cloud_load();
         if (!defined('SB_DB_NAME') || !sb_is_agent()) {
             die('<script>document.location = "' . CLOUD_URL . '/account?login"</script>');
@@ -61,8 +64,8 @@ require('include/components.php');
         <?php echo !$is_cloud && $connection_success && sb_get_setting('admin-title') ? sb_get_setting('admin-title') : ($is_cloud ? SB_CLOUD_BRAND_NAME : 'Support Board') ?>
     </title>
     <script src="<?php echo $sb_url . 'js/min/jquery.min.js?v=' . SB_VERSION ?>"></script>
-    <script src="<?php echo $sb_url . ((($is_cloud || $minify) && !isset($_GET['debug'])) ? 'js/min/main.min.js?v=' : 'js/main.js?v=') . SB_VERSION ?>"></script>
-    <script src="<?php echo $sb_url . ((($is_cloud || $minify) && !isset($_GET['debug'])) ? 'js/min/admin.min.js?v=' : 'js/admin.js?v=') . SB_VERSION ?>"></script>
+    <script src="<?php echo $sb_url . ((($is_cloud || $minify) && !sb_is_debug()) ? 'js/min/main.min.js?v=' : 'js/main.js?v=') . SB_VERSION ?>"></script>
+    <script src="<?php echo $sb_url . ((($is_cloud || $minify) && !sb_is_debug()) ? 'js/min/admin.min.js?v=' : 'js/admin.js?v=') . SB_VERSION ?>"></script>
     <link rel="stylesheet" href="<?php echo $sb_url . 'css/admin.css?v=' . SB_VERSION ?>" media="all" />
     <link rel="stylesheet" href="<?php echo $sb_url . 'css/responsive-admin.css?v=' . SB_VERSION ?>" media="(max-width: 464px)" />
     <?php
@@ -72,7 +75,7 @@ require('include/components.php');
     ?>
     <link rel="shortcut icon" type="image/png" href="<?php echo $is_cloud ? SB_CLOUD_BRAND_ICON_PNG : sb_get_setting('admin-icon', $sb_url . 'media/icon.png') ?>" />
     <link rel="apple-touch-icon" href="<?php echo $is_cloud ? SB_CLOUD_BRAND_ICON_PNG : sb_get_setting('admin-icon', $sb_url . 'resources/pwa/icons/icon-192x192.png') ?>" />
-    <link rel="manifest" href="<?php echo $is_cloud ? SB_CLOUD_MANIFEST_URL : sb_get_setting('manifest-url', $sb_url . 'resources/pwa/manifest.json') ?>" />
+    <link rel="manifest" href="<?php echo $is_cloud ? SB_CLOUD_MANIFEST_URL : sb_get_setting('manifest-url', $sb_url . '/manifest.json') ?>" />
     <?php
     if ($is_cloud) {
         cloud_js_admin();

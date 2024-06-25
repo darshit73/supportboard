@@ -21,6 +21,26 @@
     -moz-osx-font-smoothing: grayscale;
 }
 
+.sb-icon-files:before {
+    content: "\e907";
+}
+
+.sb-icon-info:before {
+    content: "\e906";
+}
+
+.sb-icon-warning:before {
+    content: "\e905";
+}
+
+.sb-icon-edit:before {
+    content: "\e904";
+}
+
+.sb-icon-mic:before {
+    content: "\e903";
+}
+
 .sb-icon-play:before {
     content: "\f04b";
 }
@@ -28,7 +48,7 @@
 .sb-icon-pause:before {
     content: "\f04c";
 }
- 
+
 .sb-icon-openai:before {
     content: "\e902";
 }
@@ -249,4 +269,8 @@
 
 .sb-icon-circle:before {
     content: "\e900";
+}
+
+.sb-icon-tag:before {
+    content: "\f02b";
 }

@@ -5,7 +5,7 @@
 * MAIN.SCSS
 * ==========================================================
 *
-* Main style file of the plugin written in scss.
+* Main style file of the plugin written in SCSS.
 *
 */
 
@@ -806,7 +806,7 @@ div ul.sb-menu li:hover,
         padding: 0;
 
         .sb-textarea {
-            padding: 15px 85px 15px 15px;
+            padding: 15px 120px 15px 15px;
             border-top: 1px solid rgb(222, 229, 236);
         }
 
@@ -820,10 +820,6 @@ div ul.sb-menu li:hover,
 
         .sb-bar {
             padding: 15px 15px 15px 0;
-
-            &.sb-active + .sb-popup.sb-emoji:after {
-                right: 40px;
-            }
         }
 
         .sb-btn {
@@ -855,11 +851,37 @@ div ul.sb-menu li:hover,
             background: rgb(251, 251, 251);
         }
 
+        &.sb-active {
+            .sb-bar + .sb-popup.sb-emoji:after {
+                right: 40px;
+            }
+
+            .sb-textarea {
+                padding-right: 85px;
+            }
+
+            &.sb-disabled-2 .sb-textarea {
+                padding-right: 80px;
+            }
+
+            .sb-bar-icons > div {
+                margin-right: 0;
+            }
+        }
+
         &.sb-drag {
             left: 2px;
             bottom: 2px;
             border-radius: 4px;
             width: calc(100% - 4px);
+        }
+
+        &.sb-disabled-1 .sb-textarea {
+            padding-right: 80px;
+        }
+
+        &.sb-disabled-2 .sb-textarea {
+            padding-right: 50px;
         }
     }
 

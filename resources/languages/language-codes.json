@@ -1,4 +1,5 @@
 {
+  "am": "Amharic",
   "ar": "Arabic",
   "bg": "Bulgarian",
   "br": "Brasilian Portugase",
@@ -16,17 +17,17 @@
   "hi": "Hindi",
   "hr": "Croatian",
   "hu": "Hungarian",
-  "am": "Armenian",
   "id": "Indonesian",
-  "it": "Italian",
   "is": "Icelandic",
+  "it": "Italian",
+  "lt": "Lithuanian",
   "ja": "Japanese",
   "ka": "Georgian",
   "ko": "Korean",
   "mk": "Macedonian",
   "mn": "Mongolian",
-  "my": "Burmese",
   "ms": "Malay",
+  "my": "Burmese",
   "nl": "Dutch",
   "no": "Norwegian",
   "pl": "Polish",
@@ -43,5 +44,6 @@
   "tr": "Turkish",
   "uk": "Ukrainian",
   "vi": "Vietnamese",
-  "zh": "Chinese"
+  "zh": "Chinese",
+  "zt": "Traditional Chinese"
 }

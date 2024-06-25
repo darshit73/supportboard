@@ -5,13 +5,21 @@
 * RESPONSIVE.SCSS
 * ==========================================================
 *
-* Front-end responsive css. This file is imported only.
+* Front-end responsive CSS. This file is imported only.
 *
 */
 
 @media (max-width: 464px) {
     body.sb-chat-open {
         overscroll-behavior-y: contain;
+    }
+
+    .sb-grid {
+        display: block !important;
+
+        > div + div, > a + a {
+            margin-top: 15px;
+        }
     }
 
     .sb-chat {
@@ -62,16 +70,13 @@
 
             &:before {
                 font-size: 12px;
+                line-height: 19px;
                 z-index: 9;
                 position: relative;
                 top: 8px;
                 right: 10px;
                 color: #FFF;
             }
-        }
-
-        .sb-header .sb-responsive-close-btn:before {
-            top: 6px;
         }
 
         &.sb-active {
@@ -205,7 +210,19 @@
 
         .sb-editor {
             .sb-textarea {
+                padding-right: 80px;
+            }
+
+            &.sb-disabled-1 .sb-textarea {
                 padding-right: 55px;
+            }
+
+            &.sb-disabled-2 .sb-textarea {
+                padding-right: 15px;
+            }
+
+            &.sb-active .sb-textarea {
+                padding-right: 50px !important;
             }
 
             .sb-attachments > div > i {
@@ -220,6 +237,51 @@
         &.sb-notify-active .sb-body .sb-scroll-area .sb-header-agent + .sb-list {
             padding-top: 185px;
         }
+    }
+
+    .sb-list > div.sb-label-date span, .sb-label-date-top span {
+        font-size: 14px;
+        line-height: 28px;
+    }
+
+    .sb-list .sb-time {
+        font-size: 13px;
+        line-height: 19px;
+    }
+
+    .sb-editor textarea, .sb-list .sb-message, .sb-list .sb-message a, .sb-chat .sb-dashboard > div > .sb-title, .sb-chat .sb-dashboard > div > .sb-top,
+    .sb-chat .sb-dashboard > div > div > .sb-title, .sb-chat .sb-dashboard > div > div > .sb-top, .sb-chat .sb-init-form > .sb-title, .sb-chat .sb-init-form > .sb-top,
+    .sb-chat .sb-init-form > div > .sb-title, .sb-chat .sb-init-form > div > .sb-top, .sb-input > input, .sb-input > select, .sb-input > textarea, .sb-articles > div > div,
+    .sb-articles > div > span, .sb-article .sb-content, .sb-chat .sb-departments-list > div span, .sb-chat .sb-agents-list > div span, .sb-chat .sb-channels-list > div span,
+    .sb-rich-message .sb-top, .sb-rich-message .sb-title, .sb-rich-message .sb-text, .sb-user-conversations > li > div .sb-message, .sb-user-conversations > li > div {
+        font-size: 16px;
+        line-height: 25px;
+    }
+
+    .sb-chat .sb-header-agent .sb-profile .sb-name {
+        font-size: 16px;
+        line-height: 22px;
+    }
+
+    .sb-chat .sb-header-agent .sb-profile .sb-status, .sb-chat .sb-dashboard > div > .sb-btn, .sb-btn-text, .sb-rating > span, .sb-rating i span {
+        font-size: 15px;
+    }
+
+    .sb-chat .sb-scroll-area .sb-header .sb-text {
+        font-size: 15px;
+        line-height: 24px;
+    }
+
+    .sb-rating i {
+        font-size: 17px;
+    }
+
+    .sb-editor .sb-attachments > div {
+        font-size: 12px;
+    }
+
+    .sb-articles > div > span {
+        height: 22px;
     }
 
     .sb-lightbox {
@@ -254,9 +316,17 @@
         }
     }
 
-    .sb-rtl .sb-editor .sb-textarea {
-        padding-right: 15px;
-        padding-left: 55px;
+    .sb-rtl {
+
+        .sb-editor .sb-textarea {
+            padding-right: 15px;
+            padding-left: 55px;
+        }
+
+        .sb-editor.sb-active .sb-textarea {
+            padding-right: 15px !important;
+            padding-left: 50px !important;
+        }
     }
 
     .sb-header-main > .sb-responsive-close-btn, .sb-queue-active .sb-responsive-close-btn {
@@ -265,5 +335,9 @@
 
     .sb-overlay-panel {
         border-radius: 0;
+    }
+
+    .sb-input-select-input > div.sb-select-phone ul {
+        height: 150px !important;
     }
 }

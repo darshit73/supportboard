@@ -5,7 +5,7 @@
 * RTL.SCSS
 * ==========================================================
 *
-* Front-end RTL css. This file is imported only.
+* Front-end RTL CSS. This file is imported only.
 *
 */
 
@@ -28,11 +28,6 @@
         border-bottom-left-radius: 3px;
         margin-left: 0;
         margin-right: -3px;
-
-        &:before {
-            transform: rotate(180deg);
-            display: inline-block;
-        }
     }
 
     .sb-input-select-input {
@@ -40,10 +35,10 @@
             left: auto;
             right: 6px;
         }
+    }
 
-        input {
-            padding: 5px 60px 0 0;
-        }
+    .sb-list .sb-input-select-input input {
+        padding: 5px 60px 0 0;
     }
 
     .sb-btn-text i {
@@ -122,15 +117,21 @@
             .sb-dashboard-btn {
                 right: -60px !important;
                 left: auto;
-
-                &:before {
-                    content: "\75";
-                }
             }
 
             &:hover .sb-dashboard-btn {
                 right: 20px !important;
                 left: auto;
+            }
+        }
+
+        .sb-scroll-area .sb-header.sb-header-panel {
+            text-align: right;
+            padding: 5px 30px 5px 60px;
+
+            .sb-dashboard-btn {
+                left: 10px;
+                right: auto !important;
             }
         }
 
@@ -210,7 +211,28 @@
 
     .sb-editor {
         .sb-textarea {
-            padding: 15px 15px 15px 85px;
+            padding: 15px 15px 15px 120px;
+        }
+
+        &.sb-disabled-1 .sb-textarea {
+            padding-left: 80px;
+            padding-right: 15px;
+        }
+
+        &.sb-disabled-2 .sb-textarea {
+            padding-left: 50px;
+            padding-right: 15px;
+        }
+
+        &.sb-active {
+
+            &.sb-disabled-2 .sb-textarea {
+                padding-right: 15px;
+            }
+
+            .sb-textarea {
+                padding: 15px 15px 15px 80px
+            }
         }
 
         .sb-submit {
@@ -230,14 +252,15 @@
         }
 
         .sb-bar-icons > div {
-            &.sb-btn-attachment {
-                margin-right: 0;
-                margin-left: 7px;
-            }
 
             &:before {
                 left: 0px;
                 right: 7px;
+            }
+
+            &:last-child {
+                margin-right: 7px;
+                margin-left: 0;
             }
         }
 
@@ -280,19 +303,6 @@
 
         > div > div {
             text-align: right;
-        }
-    }
-
-    &.sb-articles-page {
-        direction: ltr;
-
-        > div {
-            direction: rtl;
-        }
-
-        .sb-article .sb-title .sb-icon-close {
-            right: auto;
-            left: 0;
         }
     }
 
@@ -350,8 +360,7 @@
         }
     }
 
-    .sb-list table th,
-    .sb-list table td {
+    .sb-list table th, .sb-list table td, .sb-init-form .sb-text, .sb-privacy .sb-title, .sb-privacy .sb-buttons {
         text-align: right;
     }
 
@@ -391,5 +400,37 @@
     .sb-label-date-top {
         left: 5px;
         right: 0;
+    }
+
+    .sb-select-phone img {
+        margin: 0 0 0 10px;
+    }
+
+    .sb-select-search input {
+        margin: 0 !important;
+        padding: 0 10px !important;
+    }
+
+    .sb-input-select-input input {
+        padding: 5px 100px 0 0;
+    }
+
+    .sb-close-chat {
+        right: auto;
+        left: 20px;
+    }
+
+    #sb-audio-clip {
+        right: 0;
+        left: 40px;
+
+        .sb-btn-clip-player.sb-active {
+            margin-right: 0;
+            margin-left: -15px;
+        }
+    }
+
+    .sb-departments-list > div span, .sb-agents-list > div span, .sb-channels-list > div span {
+        padding: 0 15px 0 0;
     }
 }

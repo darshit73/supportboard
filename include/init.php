@@ -27,12 +27,21 @@ if (!empty($_GET['lang'])) {
     $_POST['language'] = [$_GET['lang']];
 }
 if (sb_is_cloud()) {
+    if (defined('SB_BAN') && in_array(sb_isset($_SERVER, 'HTTP_REFERER'), SB_BAN)) {
+        die('ip-banned');
+    }
     $load = sb_cloud_load();
     if ($load !== true) {
         if ($load == 'config-file-missing') {
             die('<script>document.cookie="sb-login=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;";document.cookie="sb-cloud=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/;";location.reload();</script>');
         }
         die('cloud-load-error');
+    }
+}
+if (sb_get_setting('ip-ban')) {
+    $ip = isset($_SERVER['HTTP_CF_CONNECTING_IP']) && substr_count($_SERVER['HTTP_CF_CONNECTING_IP'], '.') == 3 ? $_SERVER['HTTP_CF_CONNECTING_IP'] : $_SERVER['REMOTE_ADDR'];
+    if (strpos(sb_get_setting('ip-ban'), $ip) !== false) {
+        die('ip-banned');
     }
 }
 sb_init_translations();
@@ -157,8 +166,8 @@ function sb_component_chat() {
         </div>
         <i class="sb-icon sb-icon-close sb-responsive-close-btn"></i>
         <?php
-        if (sb_get_setting('chat-sound', 'n') != 'n') {
-            echo '<audio id="sb-audio" preload="auto"><source src="' . SB_URL . '/media/sound.mp3" type="audio/mpeg"></audio><audio id="sb-audio-out" preload="auto"><source src="' . SB_URL . '/media/sound-out.mp3" type="audio/mpeg"></audio>';
+        if (sb_get_multi_setting('sound-settings', 'sound-settings-active')) {
+            echo '<audio id="sb-audio" preload="auto"><source src="' . SB_URL . '/media/sound.mp3" type="audio/mpeg"></audio>';
         }
         ?>
         <div class="sb-lightbox-media">
@@ -211,7 +220,7 @@ function sb_cross_site_init() {
 
 function sb_agents_menu() {
     $agents = sb_db_get('SELECT id, first_name, last_name, profile_image FROM sb_users WHERE user_type = "agent"', false);
-    $code = '<div class="sb-dashboard-agents"><div class="sb-title">' . sb_(sb_get_multi_setting('agents-menu', 'agents-menu-title', 'Agents')) . '</div><div class="sb-agents-list">';
+    $code = '<div class="sb-dashboard-agents"><div class="sb-title">' . sb_(sb_get_multi_setting('agents-menu', 'agents-menu-title', 'Agents')) . '</div><div class="sb-agents-list"' . (sb_get_multi_setting('agents-menu', 'agents-menu-force-one') ? ' data-force-one="true"' : '') . '>';
     for ($i = 0; $i < count($agents); $i++) {
         $code .= '<div data-id="' . $agents[$i]['id'] . '"><img src="' . $agents[$i]['profile_image'] . '" loading="lazy"><span>' . $agents[$i]['first_name'] . ' ' . $agents[$i]['last_name'] . '</span></div>';
     }

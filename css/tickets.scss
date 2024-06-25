@@ -241,13 +241,23 @@
             z-index: 9;
         }
     }
+
+    .sb-form {
+        .sb-input > span {
+            padding-right: 15px;
+        }
+
+        .sb-input-select-input input {
+            padding-top: 0;
+        }
+    }
 }
 
 [data-panel="registration"] .sb-input-select-input {
     position: relative;
 
     span + div {
-        margin-left: 150px;
+        margin-left: 165px;
         opacity: 1;
     }
 }
@@ -321,6 +331,10 @@
 
             .sb-name, .sb-message {
                 font-weight: 400;
+            }
+
+            [data-count] {
+                border-color: $background-gray;
             }
         }
 
@@ -961,6 +975,17 @@
             border: 1px solid $color-red;
             box-shadow: 0 0 5px rgba(202, 52, 52, 0.25);
         }
+
+        &.sb-audio-message-active {
+            .sb-textarea, .sb-bar-icons {
+                display: none;
+            }
+
+            .sb-bar {
+                margin-top: 0;
+                justify-content: right;
+            }
+        }
     }
 
     .sb-editor-cnt {
@@ -1173,6 +1198,14 @@
 
 .sb-overlay-panel.sb-active {
     z-index: 96;
+}
+
+.sb-tickets #sb-audio-clip {
+    background: $white;
+
+    .sb-icon:before {
+        line-height: 50px;
+    }
 }
 
 /*
@@ -1392,6 +1425,10 @@
     &.sb-panel-form .sb-input-select-input span + div {
         margin-left: 0;
         top: 40px;
+    }
+
+    .sb-tickets-area .sb-form .sb-input > span {
+        padding-right: 0;
     }
 }
 

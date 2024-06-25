@@ -1,15 +1,16 @@
 <?php
+use Swoole\Http\Response;
 
 /*
  * ==========================================================
  * FUNCTIONS.PHP
  * ==========================================================
  *
- * Main PHP functions file. © 2017-2023 board.support. All rights reserved.
+ * Main PHP functions file. © 2017-2024 board.support. All rights reserved.
  *
  */
 
-define('SB_VERSION', '3.6.5');
+define('SB_VERSION', '3.7.3');
 
 if (!defined('SB_PATH')) {
     $path = dirname(__DIR__, 1);
@@ -75,7 +76,7 @@ class SBValidationError {
     }
 }
 
-$sb_apps = ['dialogflow', 'slack', 'wordpress', 'tickets', 'woocommerce', 'ump', 'perfex', 'whmcs', 'aecommerce', 'messenger', 'whatsapp', 'armember', 'viber', 'telegram', 'line', 'wechat', 'twitter', 'zendesk', 'gbm', 'martfury'];
+$sb_apps = ['dialogflow', 'slack', 'wordpress', 'tickets', 'woocommerce', 'ump', 'perfex', 'whmcs', 'aecommerce', 'messenger', 'whatsapp', 'armember', 'viber', 'telegram', 'line', 'wechat', 'twitter', 'zendesk', 'gbm', 'martfury', 'opencart'];
 for ($i = 0; $i < count($sb_apps); $i++) {
     $file = SB_PATH . '/apps/' . $sb_apps[$i] . '/functions.php';
     if (file_exists($file)) {
@@ -107,8 +108,14 @@ function sb_db_connect() {
         sb_db_init_settings();
         return true;
     }
-    $SB_CONNECTION = new mysqli(SB_DB_HOST, SB_DB_USER, SB_DB_PASSWORD, SB_DB_NAME, defined('SB_DB_PORT') && SB_DB_PORT ? intval(SB_DB_PORT) : ini_get('mysqli.default_port'));
-    if ($SB_CONNECTION->connect_error) {
+    $SB_CONNECTION = new mysqli();
+    $certificate_path = sb_defined('SB_DB_CERTIFICATE_PATH');
+    $port = defined('SB_DB_PORT') && SB_DB_PORT ? intval(SB_DB_PORT) : ini_get('mysqli.default_port');
+    $socket = sb_defined('SB_DB_SOCKET', null);
+    if ($certificate_path) {
+        $SB_CONNECTION->ssl_set(SB_PATH . $certificate_path . SB_DB_CERTIFICATE_CLIENT_KEY, SB_PATH . $certificate_path . SB_DB_CERTIFICATE_CLIENT, SB_PATH . $certificate_path . SB_DB_CERTIFICATE_CA, null, null);
+    }
+    if (!$SB_CONNECTION->real_connect(SB_DB_HOST, SB_DB_USER, SB_DB_PASSWORD, SB_DB_NAME, $socket ? null : $port, $socket, $certificate_path ? MYSQLI_CLIENT_SSL : 0)) {
         echo 'Connection error. Visit the admin area for more details or open the config.php file and check the database information. Message: ' . $SB_CONNECTION->connect_error . '.';
         return false;
     }
@@ -168,7 +175,10 @@ function sb_db_escape($value, $numeric = -1) {
     if (is_numeric($value)) {
         return $value;
     } else if ($numeric === true) {
-        return false;
+        if (is_bool($numeric)) {
+            return false;
+        }
+        die(sb_error('value-not-numeric', 'sb_db_escape', 'Value not numeric', true));
     }
     global $SB_CONNECTION;
     sb_db_connect();
@@ -185,7 +195,7 @@ function sb_db_escape($value, $numeric = -1) {
 function sb_db_json_escape($array) {
     global $SB_CONNECTION;
     sb_db_connect();
-    $value = str_replace(['"false"', '"true"'], ['false', 'true'], json_encode($array, JSON_INVALID_UTF8_IGNORE));
+    $value = str_replace(['"false"', '"true"'], ['false', 'true'], json_encode($array, JSON_INVALID_UTF8_IGNORE, JSON_UNESCAPED_UNICODE));
     $value = sb_sanatize_string($value);
     return $SB_CONNECTION ? $SB_CONNECTION->real_escape_string($value) : $value;
 }
@@ -207,14 +217,20 @@ function sb_db_check_connection($name = false, $user = false, $password = false,
         $user = SB_DB_USER;
         $password = SB_DB_PASSWORD;
         $host = SB_DB_HOST;
-        $port = defined('SB_DB_PORT') && SB_DB_PORT ? intval(SB_DB_PORT) : false;
+        $port = defined('SB_DB_PORT') && SB_DB_PORT ? SB_DB_PORT : ini_get('mysqli.default_port');
     }
     if ($name === false || !$name) {
         return 'installation';
     }
     try {
         set_error_handler(function () { }, E_ALL);
-        $SB_CONNECTION = new mysqli($host, $user, $password, $name, $port === false ? ini_get('mysqli.default_port') : intval($port));
+        $SB_CONNECTION = new mysqli();
+        $certificate_path = sb_defined('SB_DB_CERTIFICATE_PATH');
+        $socket = sb_defined('SB_DB_SOCKET', null);
+        if ($certificate_path) {
+            $SB_CONNECTION->ssl_set(SB_PATH . $certificate_path . SB_DB_CERTIFICATE_CLIENT_KEY, SB_PATH . $certificate_path . SB_DB_CERTIFICATE_CLIENT, SB_PATH . $certificate_path . SB_DB_CERTIFICATE_CA, null, null);
+        }
+        $SB_CONNECTION->real_connect($host, $user, $password, $name, $socket ? null : intval($port), $socket, $certificate_path ? MYSQLI_CLIENT_SSL : 0);
         sb_db_init_settings();
     } catch (Exception $e) {
         $response = $e->getMessage();
@@ -395,7 +411,7 @@ function sb_t($string, $language_code = false) {
     if (!$language_code || $language_code == -1) {
         $language_code = sb_get_user_language(sb_get_active_user_ID());
     }
-    if (!$language_code || $language_code == -1) {
+    if (!$language_code || $language_code == -1 || $language_code == 'en') {
         return $string;
     }
     if (empty($SB_LANGUAGE) || empty($SB_TRANSLATIONS) || $SB_LANGUAGE[0] != $language_code) {
@@ -444,7 +460,7 @@ function sb_t($string, $language_code = false) {
 function sb_init_translations() {
     global $SB_TRANSLATIONS;
     global $SB_LANGUAGE;
-    $SB_CLOUD_DEFAULT_LANGUAGE_CODE = sb_defined('SB_CLOUD_DEFAULT_LANGUAGE_CODE', false);
+    $SB_CLOUD_DEFAULT_LANGUAGE_CODE = sb_defined('SB_CLOUD_DEFAULT_LANGUAGE_CODE');
     if (!empty($SB_LANGUAGE) && ($SB_LANGUAGE[0] != 'en' || $SB_CLOUD_DEFAULT_LANGUAGE_CODE)) {
         $path = SB_PATH . '/resources/languages/' . $SB_LANGUAGE[1] . '/' . $SB_LANGUAGE[0] . '.json';
         if (sb_is_cloud()) {
@@ -470,16 +486,16 @@ function sb_init_translations() {
                 return;
             }
         }
-        $admin = sb_is_agent();
-        $language = $admin ? sb_get_admin_language() : sb_get_user_language(sb_get_active_user_ID());
-        if (($language && $language != 'en') && ($admin || isset($_GET['lang']) || $is_init || (sb_get_setting('dialogflow-multilingual-translation') || sb_get_multi_setting('google', 'google-multilingual-translation')))) { // Deprecated: sb_get_setting('dialogflow-multilingual-translation')
+        $is_admin = sb_is_agent();
+        $language = $is_admin ? sb_get_admin_language() : sb_get_user_language(sb_get_active_user_ID());
+        if (($language && $language != 'en') && ($is_admin || isset($_GET['lang']) || $is_init || (sb_get_setting('dialogflow-multilingual-translation') || sb_get_multi_setting('google', 'google-multilingual-translation')))) { // Deprecated: sb_get_setting('dialogflow-multilingual-translation')
             switch ($language) {
                 case 'nn':
                 case 'nb':
                     $language = 'no';
                     break;
             }
-            $area = $admin ? 'admin' : 'front';
+            $area = $is_admin ? 'admin' : 'front';
             $path = SB_PATH . '/resources/languages/' . $area . '/' . $language . '.json';
             if (sb_is_cloud()) {
                 $cloud_path = SB_PATH . '/uploads/cloud/languages/' . sb_isset(sb_cloud_account(), 'user_id') . '/' . $area . '/' . $language . '.json';
@@ -570,7 +586,7 @@ function sb_save_translations($translations) {
     }
     foreach ($translations as $key => $translation) {
         foreach ($translation as $key_area => $translations_list) {
-            $json = html_entity_decode(json_encode($translations_list, JSON_INVALID_UTF8_IGNORE));
+            $json = html_entity_decode(json_encode($translations_list, JSON_INVALID_UTF8_IGNORE, JSON_UNESCAPED_UNICODE));
             if ($json) {
                 if ($is_cloud) {
                     sb_file($cloud_path . '/' . $key_area . '/' . $key . '.json', $json);
@@ -610,13 +626,12 @@ function sb_get_user_language($user_id = false) {
     $language = false;
     if ($user_id && is_numeric($user_id)) {
         $language = sb_get_user_extra($user_id, 'language');
-    }
-    if (!$language) {
-        if (!empty($_POST['language']) && $_POST['language'] != 'false') {
-            $language = strtolower($_POST['language'][0]);
-        } else {
+        if (!$language) {
             $language = sb_get_user_extra($user_id, 'browser_language');
         }
+    }
+    if (!$language && !empty($_POST['language']) && $_POST['language'] != 'false') {
+        $language = strtolower($_POST['language'][0]);
     }
     if ($language) {
         return strtolower($language);
@@ -634,9 +649,13 @@ function sb_get_admin_language($user_id = false) {
 }
 
 function sb_language_code($language_code_full) {
-    $language_code_full = strtolower($language_code_full);
-    if ($language_code_full == 'pt_br') {
-        return 'br';
+    switch (strtolower($language_code_full)) {
+        case 'pt_br';
+            return 'br';
+        case 'zh_cn';
+            return 'zh';
+        case 'zh_tw';
+            return 'tw';
     }
     return substr($language_code_full, 0, 2);
 }
@@ -671,19 +690,41 @@ function sb_app_get_key($app_name) {
 }
 
 function sb_app_activation($app_name, $key) {
+    if (sb_is_cloud()) {
+        $active_apps = sb_get_external_setting('active_apps', []);
+        array_push($active_apps, $app_name);
+        return sb_save_external_setting('active_apps', $active_apps);
+    }
     $envato_code = sb_get_setting('envato-purchase-code');
     if (!$envato_code) {
         return new SBValidationError('envato-purchase-code-not-found');
     }
     $key = trim($key);
-    $response = json_decode(sb_download('https://board.support/synch/updates.php?sb=' . trim($envato_code) . '&' . $app_name . '=' . $key), true);
+    $response = sb_download('https://board.support/synch/updates.php?sb=' . trim($envato_code) . '&' . $app_name . '=' . $key . '&domain=' . SB_URL);
+    if ($response == 'purchase-code-limit-exceeded') {
+        return new SBValidationError('purchase-code-limit-exceeded');
+    }
+    $response = json_decode($response, true);
     if (empty($response[$app_name])) {
         return new SBValidationError('invalid-key');
+    }
+    if ($response[$app_name] == 'purchase-code-limit-exceeded') {
+        return new SBValidationError('app-purchase-code-limit-exceeded');
     }
     if ($response[$app_name] == 'expired') {
         return new SBValidationError('expired');
     }
     return sb_app_update($app_name, $response[$app_name], $key);
+}
+
+function sb_app_disable($app_name) {
+    $active_apps = sb_get_external_setting('active_apps', []);
+    $index = array_search($app_name, $active_apps);
+    if ($index !== false) {
+        array_splice($active_apps, $index, 1);
+        return sb_save_external_setting('active_apps', $active_apps);
+    }
+    return false;
 }
 
 function sb_app_update($app_name, $file_name, $key = false) {
@@ -707,6 +748,7 @@ function sb_app_update($app_name, $file_name, $key = false) {
                 unlink($file_path);
                 if ($app_name == 'sb') {
                     sb_restore_user_translations();
+                    sb_file(SB_PATH . '/sw.js', str_replace('sb-' . str_replace('.', '-', SB_VERSION), 'sb-' . str_replace('.', '-', sb_get_versions()['sb']), file_get_contents(SB_PATH . '/sw.js')));
                     return 'success';
                 }
                 if (file_exists(SB_PATH . '/apps/' . $app_name)) {
@@ -742,7 +784,7 @@ function sb_update() {
     $result = [];
     $link = (SB_VERSION != $latest_versions['sb'] ? 'sb=' : 'sbcode=') . trim($envato_code) . '&';
     foreach ($installed_apps_versions as $key => $value) {
-        if ($value != -1 && $value != $latest_versions[$key]) {
+        if ($value && $value != $latest_versions[$key]) {
             if (isset($keys[$key])) {
                 $link .= $key . '=' . trim($keys[$key]) . '&';
             } else {
@@ -750,13 +792,16 @@ function sb_update() {
             }
         }
     }
-    if (isset($_POST['domain']))
+    if (isset($_POST['domain'])) {
         $link .= 'domain=' . $_POST['domain'] . '&';
+    }
     $downloads = sb_download('https://board.support/synch/updates.php?' . substr($link, 0, -1));
-    if (empty($downloads))
+    if (empty($downloads)) {
         return new SBValidationError('empty-or-null');
-    if (in_array($downloads, ['invalid-envato-purchase-code', 'purchase-code-limit-exceeded', 'banned', 'missing-arguments']))
+    }
+    if (in_array($downloads, ['invalid-envato-purchase-code', 'purchase-code-limit-exceeded', 'banned', 'missing-arguments'])) {
         return new SBValidationError($downloads);
+    }
     $downloads = json_decode($downloads, true);
     foreach ($downloads as $key => $value) {
         if ($value) {
@@ -767,15 +812,35 @@ function sb_update() {
 }
 
 function sb_updates_validation() {
-    if (sb_isset($_COOKIE, 'sb-updates') != SB_VERSION) {
+
+    // Temp. Deprecated
+    try {
+        if (!sb_is_debug()) {
+            sb_db_query('ALTER TABLE sb_conversations ADD COLUMN extra_3 varchar(191) AFTER extra_2');
+            sb_db_query('CREATE TABLE IF NOT EXISTS sb_articles (id INT NOT NULL AUTO_INCREMENT, title VARCHAR(191) NOT NULL, content TEXT NOT NULL, editor_js TEXT NOT NULL, nav TEXT, link VARCHAR(191), category VARCHAR(191), parent_category VARCHAR(191), language VARCHAR(2), parent_id INT, slug VARCHAR(191), update_time DATE NOT NULL, PRIMARY KEY (id), FOREIGN KEY (parent_id) REFERENCES sb_articles(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        }
+    } catch (Exception $exception) {
+    }
+    // Temp. Deprecated
+
+    if (sb_isset($_COOKIE, 'sb-updates') != SB_VERSION && !sb_is_debug()) {
         sb_cloud_load();
         try {
+
+            //3.7.2
+            sb_db_query('CREATE TABLE IF NOT EXISTS sb_articles (id INT NOT NULL AUTO_INCREMENT, title VARCHAR(191) NOT NULL, content TEXT NOT NULL, editor_js TEXT NOT NULL, nav TEXT, link VARCHAR(191), category VARCHAR(191), parent_category VARCHAR(191), language VARCHAR(2), parent_id INT, slug VARCHAR(191), update_time DATE NOT NULL, PRIMARY KEY (id), FOREIGN KEY (parent_id) REFERENCES sb_articles(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+
+            // 3.7.1
+            sb_db_query('ALTER TABLE sb_conversations ADD COLUMN extra_3 varchar(191) AFTER extra_2');
+
+            // 3.6.8
+            sb_db_query('ALTER TABLE sb_conversations ADD COLUMN extra_2 varchar(191) AFTER extra');
 
             // 3.6.4
             sb_db_query('ALTER TABLE `sb_reports` CHANGE COLUMN `value` `value` TEXT NOT NULL COLLATE \'utf8_unicode_ci\' AFTER `name`');
 
             // 3.6.1
-            sb_db_query('ALTER TABLE sb_conversations ADD COLUMN tags varchar(255) AFTER extra');
+            sb_db_query('ALTER TABLE sb_conversations ADD COLUMN tags varchar(191) AFTER extra');
 
             if (!headers_sent()) {
                 setcookie('sb-updates', SB_VERSION, time() + 31556926, '/');
@@ -787,11 +852,12 @@ function sb_updates_validation() {
 
 function sb_updates_available() {
     $latest_versions = sb_get_versions();
-    if (SB_VERSION != $latest_versions['sb'])
+    if (SB_VERSION != $latest_versions['sb']) {
         return true;
+    }
     $installed_apps_versions = sb_get_installed_apps_version();
     foreach ($installed_apps_versions as $key => $value) {
-        if ($value != -1 && $value != $latest_versions[$key]) {
+        if ($value && $value != $latest_versions[$key]) {
             return true;
         }
     }
@@ -799,7 +865,7 @@ function sb_updates_available() {
 }
 
 function sb_get_installed_apps_version() {
-    return ['dialogflow' => sb_defined('SB_DIALOGFLOW'), 'slack' => sb_defined('SB_SLACK'), 'tickets' => sb_defined('SB_TICKETS'), 'woocommerce' => sb_defined('SB_WOOCOMMERCE'), 'ump' => sb_defined('SB_UMP'), 'perfex' => sb_defined('SB_PERFEX'), 'whmcs' => sb_defined('SB_WHMCS'), 'aecommerce' => sb_defined('SB_AECOMMERCE'), 'messenger' => sb_defined('SB_MESSENGER'), 'whatsapp' => sb_defined('SB_WHATSAPP'), 'armember' => sb_defined('SB_ARMEMBER'), 'telegram' => sb_defined('SB_TELEGRAM'), 'viber' => sb_defined('SB_VIBER'), 'line' => sb_defined('SB_LINE'), 'wechat' => sb_defined('SB_WECHAT'), 'twitter' => sb_defined('SB_TWITTER'), 'zendesk' => sb_defined('SB_ZENDESK'), 'gbm' => sb_defined('SB_GBM'), 'martfury' => sb_defined('SB_MARTFURY')];
+    return ['dialogflow' => sb_defined('SB_DIALOGFLOW'), 'slack' => sb_defined('SB_SLACK'), 'tickets' => sb_defined('SB_TICKETS'), 'woocommerce' => sb_defined('SB_WOOCOMMERCE'), 'ump' => sb_defined('SB_UMP'), 'perfex' => sb_defined('SB_PERFEX'), 'whmcs' => sb_defined('SB_WHMCS'), 'aecommerce' => sb_defined('SB_AECOMMERCE'), 'messenger' => sb_defined('SB_MESSENGER'), 'whatsapp' => sb_defined('SB_WHATSAPP'), 'armember' => sb_defined('SB_ARMEMBER'), 'telegram' => sb_defined('SB_TELEGRAM'), 'viber' => sb_defined('SB_VIBER'), 'line' => sb_defined('SB_LINE'), 'wechat' => sb_defined('SB_WECHAT'), 'twitter' => sb_defined('SB_TWITTER'), 'zendesk' => sb_defined('SB_ZENDESK'), 'gbm' => sb_defined('SB_GBM'), 'martfury' => sb_defined('SB_MARTFURY'), 'opencart' => sb_defined('SB_OPENCART')];
 }
 
 
@@ -833,10 +899,11 @@ function sb_installation($details, $force = false) {
         }
         $db_respones['users'] = $connection->query('CREATE TABLE IF NOT EXISTS sb_users (id INT NOT NULL AUTO_INCREMENT, first_name VARCHAR(100) NOT NULL, last_name VARCHAR(100) NOT NULL, password VARCHAR(100), email VARCHAR(191) UNIQUE, profile_image VARCHAR(191), user_type VARCHAR(10) NOT NULL, creation_time DATETIME NOT NULL, token VARCHAR(50) NOT NULL UNIQUE, last_activity DATETIME, typing INT DEFAULT -1, department TINYINT, PRIMARY KEY (id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         $db_respones['users_data'] = $connection->query('CREATE TABLE IF NOT EXISTS sb_users_data (id INT NOT NULL AUTO_INCREMENT, user_id INT NOT NULL, slug VARCHAR(191) NOT NULL, name VARCHAR(191) NOT NULL, value TEXT NOT NULL, PRIMARY KEY (id), FOREIGN KEY (user_id) REFERENCES sb_users(id) ON DELETE CASCADE, UNIQUE INDEX sb_users_data_index (user_id, slug)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
-        $db_respones['conversations'] = $connection->query('CREATE TABLE IF NOT EXISTS sb_conversations (id int NOT NULL AUTO_INCREMENT, user_id INT NOT NULL, title VARCHAR(191), creation_time DATETIME NOT NULL, status_code TINYINT DEFAULT 0, department TINYINT, agent_id INT, source VARCHAR(2), extra VARCHAR(191), tags VARCHAR(191), PRIMARY KEY (id), FOREIGN KEY (agent_id) REFERENCES sb_users(id) ON DELETE CASCADE, FOREIGN KEY (user_id) REFERENCES sb_users(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        $db_respones['conversations'] = $connection->query('CREATE TABLE IF NOT EXISTS sb_conversations (id int NOT NULL AUTO_INCREMENT, user_id INT NOT NULL, title VARCHAR(191), creation_time DATETIME NOT NULL, status_code TINYINT DEFAULT 0, department TINYINT, agent_id INT, source VARCHAR(2), extra VARCHAR(191), extra_2 VARCHAR(191), extra_3 VARCHAR(191), tags VARCHAR(191), PRIMARY KEY (id), FOREIGN KEY (agent_id) REFERENCES sb_users(id) ON DELETE CASCADE, FOREIGN KEY (user_id) REFERENCES sb_users(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         $db_respones['messages'] = $connection->query('CREATE TABLE IF NOT EXISTS sb_messages (id int NOT NULL AUTO_INCREMENT, user_id INT NOT NULL, message TEXT NOT NULL, creation_time DATETIME NOT NULL, status_code TINYINT DEFAULT 0, attachments TEXT, payload TEXT, conversation_id INT NOT NULL, PRIMARY KEY (id), FOREIGN KEY (user_id) REFERENCES sb_users(id) ON DELETE CASCADE, FOREIGN KEY (conversation_id) REFERENCES sb_conversations(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin');
         $db_respones['settings'] = $connection->query('CREATE TABLE IF NOT EXISTS sb_settings (name VARCHAR(191) NOT NULL, value LONGTEXT, PRIMARY KEY (name)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
         $db_respones['reports'] = $connection->query('CREATE TABLE IF NOT EXISTS sb_reports (id INT NOT NULL AUTO_INCREMENT, name VARCHAR(191) NOT NULL, value TEXT NOT NULL, creation_time DATE NOT NULL, external_id INT, extra VARCHAR(191), PRIMARY KEY (id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+        $db_respones['articles'] = $connection->query('CREATE TABLE IF NOT EXISTS sb_articles (id INT NOT NULL AUTO_INCREMENT, title VARCHAR(191) NOT NULL, content TEXT NOT NULL, editor_js TEXT NOT NULL, nav TEXT, link VARCHAR(191), category VARCHAR(191), parent_category VARCHAR(191), language VARCHAR(2), parent_id INT, slug VARCHAR(191), update_time DATE NOT NULL, PRIMARY KEY (id), FOREIGN KEY (parent_id) REFERENCES sb_articles(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
 
         // Create the admin user
         if (isset($details['first-name']) && isset($details['last-name']) && isset($details['email']) && isset($details['password'])) {
@@ -845,14 +912,18 @@ function sb_installation($details, $force = false) {
             $db_respones['admin'] = $connection->query('INSERT IGNORE INTO sb_users(first_name, last_name, password, email, profile_image, user_type, creation_time, token, last_activity) VALUES ("' . sb_db_escape($details['first-name'][0]) . '", "' . sb_db_escape($details['last-name'][0]) . '", "' . (defined('SB_WP') ? $details['password'][0] : password_hash($details['password'][0], PASSWORD_DEFAULT)) . '", "' . sb_db_escape($details['email'][0]) . '", "' . sb_db_escape($details['url']) . '/media/user.svg' . '", "admin", "' . $now . '", "' . $token . '", "' . $now . '")');
         }
 
-        // Create the config.php file
+        // Create the config.php file and other files
         if ($not_cloud) {
             $raw = file_get_contents(SB_PATH . '/resources/config-source.php');
             $raw = str_replace(['[url]', '[name]', '[user]', '[password]', '[host]', '[port]'], [$details['url'], $database['name'], $database['user'], $database['password'], $database['host'], (isset($details['db-port']) && $details['db-port'][0] ? $database['port'] : '')], $raw);
+            $path = SB_PATH . '/sw.js';
             if (defined('SB_WP')) {
                 $raw = str_replace('/* [extra] */', sb_wp_config(), $raw);
             }
             sb_file(SB_PATH . '/config.php', $raw);
+            if (!file_exists($path)) {
+                copy(SB_PATH . '/resources/sw.js', $path);
+            }
         }
 
         // Return
@@ -888,15 +959,17 @@ function sb_dir_name() {
 
 /*
  * ----------------------------------------------------------
- * PUSHER
+ * PUSHER AND Push notifications
  * ----------------------------------------------------------
  *
- * 1. Send a Push notification.
+ * 1. Send a Push notification
  * 2. Trigger a event on a channel
  * 3. Get all online users including admins and agents
  * 4. Check if there is at least one agent online
  * 5. Check if pusher is active
  * 6. Initialize the Pusher PHP SDK
+ * 7. Pusher curl
+ * 8. OneSignal curl
  *
  */
 
@@ -918,17 +991,20 @@ function sb_push_notification($title = '', $message = '', $icon = '', $interest 
         if (is_numeric($interest)) {
             if (!in_array(intval($interest), $agents_ids)) {
                 if ($is_user && empty($GLOBALS['SB_FORCE_ADMIN'])) {
-                    return sb_error('security-error', 'sb_push_notification');
+                    return sb_error('security-erroraaa', 'sb_push_notification');
                 }
-            } else
+            } else {
                 $recipient_agent = true;
+            }
         } else {
             for ($i = 0; $i < count($interest); $i++) {
                 if (!in_array(intval($interest[$i]), $agents_ids)) {
-                    if ($is_user && empty($GLOBALS['SB_FORCE_ADMIN']))
-                        return sb_error('security-error', 'sb_push_notification');
-                } else
+                    if ($is_user && empty($GLOBALS['SB_FORCE_ADMIN'])) {
+                        return sb_error('security-erroasr', 'sb_push_notification');
+                    }
+                } else {
                     $recipient_agent = true;
+                }
             }
         }
     } else if ($interest == 'all-agents') {
@@ -940,65 +1016,100 @@ function sb_push_notification($title = '', $message = '', $icon = '', $interest 
     if (sb_is_agent() && !$recipient_agent) {
         $link = $conversation_id ? sb_isset(sb_db_get('SELECT B.value FROM sb_conversations A, sb_users_data B WHERE A.id = ' . sb_db_escape($conversation_id, true) . ' AND A.user_id = B.user_id AND B.slug = "current_url" LIMIT 1'), 'value', '') : false;
     } else {
-        $link = SB_URL . '/admin.php';
+        $link = (sb_is_cloud() ? CLOUD_URL : SB_URL . '/admin.php') . ($conversation_id ? '?conversation=' . $conversation_id : '');
     }
-    if (defined('SB_DIALOGFLOW') && is_numeric($interest)) {
-        $message_translated = sb_google_translate_auto($message, $interest);
+    if (defined('SB_DIALOGFLOW') && (is_numeric($interest) || (is_array($interest) && is_numeric($interest[0])))) {
+        $message_translated = sb_google_translate_auto($message, is_numeric($interest) ? $interest : $interest[0]);
         $message = empty($message_translated) ? $message : $message_translated;
     }
+    $is_pusher = !sb_is_cloud() && sb_get_multi_setting('push-notifications', 'push-notifications-provider') == 'pusher';
     $image = $attachments && count($attachments) && in_array(pathinfo($attachments[0][1], PATHINFO_EXTENSION), ['jpeg', 'jpg', 'png', 'gif']) ? $attachments[0][1] : false;
-    $instance_ID = sb_get_multi_setting('push-notifications', 'push-notifications-id');
-    $query = ',"web":{"notification":{"title":"' . str_replace('"', '', $title) . '","body":"' . str_replace('"', '', sb_clear_text_formatting(trim(preg_replace('/\s+/', ' ', $message)))) . '","icon":"' . $icon . '"' . ($link ? ',"deep_link":"' . $link . '"' : '') . ',"hide_notification_if_site_has_focus":true}, "data": {"conversation_id":"' . $conversation_id . '","user_id":"' . $user_id . '","image":"' . ($image ? $image : '') . '"}}}';
-    $url = 'https://' . $instance_ID . '.pushnotifications.pusher.com/publish_api/v1/instances/' . $instance_ID . '/publishes';
-    $header = ['Content-Type: application/json', 'Authorization: Bearer ' . sb_get_multi_setting('push-notifications', 'push-notifications-key')];
+    $title = str_replace('"', '', $title);
+    $message = str_replace('"', '', sb_clear_text_formatting(trim(preg_replace('/\s+/', ' ', $message))));
+    $response = false;
     if (empty($interest)) {
         return false;
     }
-    if (is_array($interest) && count($interest) > 100) {
-        $interests = [];
-        $index = 0;
-        $count = count($interest);
-        for ($i = 0; $i < $count; $i++) {
-            array_push($interests, $interest[$i]);
-            $index++;
-            if ($index == 100 || $i == $count - 1) {
-                $response = sb_curl($url, '{"interests":' . json_encode($interests) . $query, $header);
-                $interests = [];
-                $index = 0;
+    $query_data = ['conversation_id' => $conversation_id, 'user_id' => $user_id, 'image' => $image ? $image : '', 'badge' => SB_URL . '/media/badge.png'];
+    if ($is_pusher) {
+        $query = ',"web":{"notification":{"title":"' . $title . '","body":"' . $message . '","icon":"' . $icon . '"' . ($link ? ',"deep_link":"' . $link . '"' : '') . ',"hide_notification_if_site_has_focus":true}, "data": ' . json_encode($query_data) . '}}';
+        if (is_array($interest) && count($interest) > 100) {
+            $interests = [];
+            $index = 0;
+            $count = count($interest);
+            for ($i = 0; $i < $count; $i++) {
+                array_push($interests, $interest[$i]);
+                $index++;
+                if ($index == 100 || $i == $count - 1) {
+                    $response = sb_pusher_curl('publishes', '{"interests":' . json_encode($interests) . $query);
+                    $interests = [];
+                    $index = 0;
+                }
             }
+        } else {
+            $response = sb_pusher_curl('publishes', '{"interests":' . (is_array($interest) ? json_encode($interest) : '["' . str_replace(' ', '', $interest) . '"]') . $query);
         }
     } else {
-        $response = sb_curl($url, '{"interests":' . (is_array($interest) ? json_encode($interest) : '["' . str_replace(' ', '', $interest) . '"]') . $query, $header);
+        $query = ['headings' => ['en' => $title], 'contents' => ['en' => $message], 'chrome_web_badge' => SB_URL . '/media/badge.png', 'firefox_icon' => $icon, 'chrome_web_icon' => $icon, 'priority' => 10, 'data' => $query_data];
+        if ($link) {
+            $query['url'] = $link;
+        }
+        if ($conversation_id) {
+            $query['collapse_id'] = $conversation_id;
+        }
+        if ($image) {
+            $query['chrome_web_image'] = $image;
+            $query['chrome_big_picture'] = $image;
+            if (!$message) {
+                $query['contents']['en'] = $image;
+            }
+        }
+        if (is_numeric($interest) || is_array($interest)) {
+            $cloud_id = sb_is_cloud() ? sb_cloud_account()['user_id'] . '-' : '';
+            if (is_numeric($interest)) {
+                $interest = [$interest];
+            }
+            for ($i = 0; $i < count($interest); $i++) {
+                $interest[$i] = $cloud_id . strval($interest[$i]);
+                if ($interest[$i] == 1) {
+                    $interest[$i] = 'SB-1';
+                }
+            }
+            $query['include_aliases'] = ['external_id' => $interest];
+            $query['target_channel'] = ['push'];
+        }
+        $response = sb_onesignal_curl('notifications', $query);
     }
-    if (isset($response['error'])) {
-        return trigger_error($response['description']);
-    } else {
-        return $response;
-    }
+    return isset($response['error']) ? trigger_error($response['description']) : $response;
 }
 
 function sb_pusher_trigger($channel, $event, $data = []) {
     $pusher = sb_pusher_init();
     $user_id = sb_get_active_user_ID();
     $data['user_id'] = $user_id;
-    $security = false;
+    $security = sb_isset($GLOBALS, 'SB_FORCE_ADMIN');
     $count = is_array($channel) ? count($channel) : false;
-    switch ($event) {
-        case 'message-status-update':
-        case 'set-agent-status':
-        case 'agent-active-conversation-changed':
-        case 'add-user-presence':
-        case 'init':
-        case 'new-message':
-        case 'new-conversation':
-        case 'client-typing':
-        case 'typing':
-            $security = sb_is_agent() || $channel == ('private-user-' . $user_id);
-            break;
-        case 'update-conversations':
-            if ($user_id)
-                $security = true;
-            break;
+    if (!$security) {
+        switch ($event) {
+            case 'message-status-update':
+            case 'set-agent-status':
+            case 'agent-active-conversation-changed':
+            case 'add-user-presence':
+            case 'init':
+            case 'new-message':
+            case 'new-conversation':
+            case 'client-typing':
+            case 'close-notifications':
+            case 'close-notifications-received':
+            case 'typing':
+                $security = sb_is_agent() || $channel == ('private-user-' . $user_id);
+                break;
+            case 'update-conversations':
+                if ($user_id) {
+                    $security = true;
+                }
+                break;
+        }
     }
     if (sb_is_cloud()) {
         $account_id = sb_isset(sb_cloud_account(), 'user_id');
@@ -1072,11 +1183,30 @@ function sb_pusher_active() {
 
 function sb_pusher_init() {
     require_once SB_PATH . '/vendor/pusher/autoload.php';
+    $pusher_details = sb_pusher_get_details();
+    return new Pusher\Pusher($pusher_details[0], $pusher_details[1], $pusher_details[2], ['cluster' => $pusher_details[3]]);
+}
+
+function sb_pusher_get_details() {
     if (sb_is_cloud()) {
-        return new Pusher\Pusher(CLOUD_PUSHER_KEY, CLOUD_PUSHER_SECRET, CLOUD_PUSHER_ID, ['cluster' => CLOUD_PUSHER_CLUSTER]);
+        $account_id = sb_cloud_account_id();
+        if (!$account_id) {
+            $account_id = sb_isset($_POST, 'cloud_user_id');
+        }
+        return $account_id && defined('CLOUD_PUSHER_' . $account_id) ? constant('CLOUD_PUSHER_' . $account_id) : [CLOUD_PUSHER_KEY, CLOUD_PUSHER_SECRET, CLOUD_PUSHER_ID, CLOUD_PUSHER_CLUSTER];
     }
     $settings = sb_get_setting('pusher');
-    return new Pusher\Pusher($settings['pusher-key'], $settings['pusher-secret'], $settings['pusher-id'], ['cluster' => $settings['pusher-cluster']]);
+    return [$settings['pusher-key'], $settings['pusher-secret'], $settings['pusher-id'], $settings['pusher-cluster']];
+}
+
+function sb_pusher_curl($url_part, $post_fields = '') {
+    $instance_ID = sb_get_multi_setting('push-notifications', 'push-notifications-id');
+    return sb_curl('https://' . $instance_ID . '.pushnotifications.pusher.com/publish_api/v1/instances/' . $instance_ID . '/' . $url_part, is_string($post_fields) ? $post_fields : json_encode($post_fields, JSON_INVALID_UTF8_IGNORE), ['Content-Type: application/json', 'Authorization: Bearer ' . sb_get_multi_setting('push-notifications', 'push-notifications-key')]);
+}
+
+function sb_onesignal_curl($url_part, $post_fields = []) {
+    $post_fields['app_id'] = sb_is_cloud() ? ONESIGNAL_APP_ID : sb_get_multi_setting('push-notifications', 'push-notifications-onesignal-app-id');
+    return sb_curl('https://onesignal.com/api/v1/' . $url_part, json_encode($post_fields, JSON_INVALID_UTF8_IGNORE), ['Authorization: basic ' . (sb_is_cloud() ? ONESIGNAL_API_KEY : trim(sb_get_multi_setting('push-notifications', 'push-notifications-onesignal-api-key'))), 'Content-Type: application/json']);
 }
 
 /*
@@ -1126,7 +1256,7 @@ function sb_isset_num($value) {
     return $value != -1 && $value && !is_null($value) && !is_bool($value) && is_numeric($value);
 }
 
-function sb_defined($name, $default = -1) {
+function sb_defined($name, $default = false) {
     return defined($name) ? constant($name) : $default;
 }
 
@@ -1153,7 +1283,8 @@ function sb_encryption($string, $encrypt = true) {
 function sb_string_slug($string, $action = 'slug') {
     $string = trim($string);
     if ($action == 'slug') {
-        return strtolower(str_replace([' ', '\'', '"'], ['-', '', ''], $string));
+        $string = strtolower(str_replace([' ', ' '], '-', $string)); // Do not delete double space (they are 2 different chars)
+        return preg_replace('/[^A-Za-z0-9.\-]/', '', sb_sanatize_string($string));
     } else if ($action == 'string') {
         return ucfirst(strtolower(str_replace(['-', '_'], ' ', $string)));
     }
@@ -1171,7 +1302,7 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
         case 'PATCH':
         case 'POST':
             curl_setopt($ch, CURLOPT_POST, true);
-            curl_setopt($ch, CURLOPT_POSTFIELDS, is_string($post_fields) ? $post_fields : http_build_query($post_fields));
+            curl_setopt($ch, CURLOPT_POSTFIELDS, is_string($post_fields) ? $post_fields : (in_array('Content-Type: multipart/form-data', $header) ? $post_fields : http_build_query($post_fields)));
             curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
             curl_setopt($ch, CURLOPT_TIMEOUT, $timeout ? $timeout : 7);
             if ($method != 'POST') {
@@ -1205,6 +1336,9 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
             if ($extension && !sb_is_allowed_extension($extension)) {
                 return 'extension-not-allowed';
             }
+            while (file_exists($path . '/' . $basename)) {
+                $basename = rand(100, 1000000) . $basename;
+            }
             $file = fopen($path . '/' . $basename, 'wb');
             curl_setopt($ch, CURLOPT_FILE, $file);
             break;
@@ -1234,7 +1368,7 @@ function sb_curl($url, $post_fields = '', $header = [], $method = 'POST', $timeo
             $response_json = json_decode($response, true);
             return JSON_ERROR_NONE !== json_last_error() ? $response : $response_json;
         case 'FILE':
-            return sb_upload_path(true) . '/' . date('d-m-y') . '/' . basename($url);
+            return sb_upload_path(true, true) . '/' . $basename;
         case 'GET-SC':
             return [$response, $status_code];
     }
@@ -1246,7 +1380,6 @@ function sb_download($url) {
 }
 
 function sb_download_file($url, $file_name = false, $mime = false, $header = [], $recursion = 0, $return_path = false) {
-    $init = [$url, $file_name];
     $url = sb_curl($url, '', $header, 'FILE');
     $path_2 = false;
     $extension = pathinfo(basename($file_name ? $file_name : $url), PATHINFO_EXTENSION);
@@ -1260,16 +1393,17 @@ function sb_download_file($url, $file_name = false, $mime = false, $header = [],
             $mime_types = [['image/gif', 'gif'], ['image/jpeg', 'jpg'], ['video/quicktime', 'mov'], ['video/mpeg', 'mp3'], ['application/pdf', 'pdf'], ['image/png', 'png'], ['image/x-png', 'png'], ['application/rtf', 'rtf'], ['text/plain', 'txt'], ['x-zip-compressed', 'zip'], ['video/mp4', 'mp4'], ['audio/mp4', 'mp4']];
             $mime = $mime === true ? mime_content_type($path . '/' . basename($url)) : $mime;
             for ($i = 0; $i < count($mime_types); $i++) {
-                if ($mime == $mime_types[$i][0]) {
+                if ($mime == $mime_types[$i][0] && substr_compare($file_name, '.' . $mime_types[$i][1], -strlen('.' . $mime_types[$i][1])) !== 0) {
                     $file_name .= '.' . $mime_types[$i][1];
                     break;
                 }
             }
         }
-        $path_2 = $path . '/' . sb_string_slug($file_name);
+        $file_name = sb_string_slug($file_name);
+        $path_2 = $path . '/' . $file_name;
         rename($path . '/' . basename($url), $path_2);
         if (!file_exists($path_2) && $recursion < 3) {
-            return sb_download_file($init[0], $init[1], $mime, $header, $recursion + 1);
+            return sb_download_file($url, $file_name, $mime, $header, $recursion + 1);
         }
         $url = sb_upload_path(true) . '/' . $date . '/' . $file_name;
         if (!$return_path && (sb_get_multi_setting('amazon-s3', 'amazon-s3-active') || defined('SB_CLOUD_AWS_S3'))) {
@@ -1285,7 +1419,7 @@ function sb_download_file($url, $file_name = false, $mime = false, $header = [],
 
 function sb_is_allowed_extension($extension) {
     $extension = strtolower($extension);
-    $allowed_extensions = ['oga', 'json', 'psd', 'ai', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'key', 'ppt', 'odt', 'xls', 'xlsx', 'zip', 'rar', 'mp3', 'm4a', 'ogg', 'wav', 'mp4', 'mov', 'wmv', 'avi', 'mpg', 'ogv', '3gp', '3g2', 'mkv', 'txt', 'ico', 'csv', 'ttf', 'font', 'css', 'scss'];
+    $allowed_extensions = ['step', 'stl', 'obj', '3mf', 'bmp', 'aac', 'webm', 'oga', 'json', 'psd', 'ai', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'key', 'ppt', 'odt', 'xls', 'xlsx', 'zip', 'rar', 'mp3', 'm4a', 'ogg', 'wav', 'mp4', 'mov', 'wmv', 'avi', 'mpg', 'ogv', '3gp', '3g2', 'mkv', 'txt', 'ico', 'csv', 'ttf', 'font', 'css', 'scss'];
     return in_array($extension, $allowed_extensions) || (defined('SB_FILE_EXTENSIONS') && in_array($extension, SB_FILE_EXTENSIONS));
 }
 
@@ -1333,7 +1467,7 @@ function sb_file_delete($url_or_path) {
 }
 
 function sb_debug($value) {
-    $value = is_string($value) ? $value : json_encode($value);
+    $value = is_string($value) ? $value : json_encode($value, JSON_INVALID_UTF8_IGNORE, JSON_UNESCAPED_UNICODE);
     $path = __DIR__ . '/debug.txt';
     if (file_exists($path)) {
         $value = file_get_contents($path) . PHP_EOL . $value;
@@ -1361,14 +1495,11 @@ function sb_get_server_max_file_size() {
         return 9999;
     }
     switch ($suffix) {
-        case 'P':
-            $size /= 1024;
-        case 'T':
-            $size /= 1024;
         case 'G':
-            $size /= 1024;
-        case 'K':
             $size *= 1024;
+            break;
+        case 'K':
+            $size /= 1024;
             break;
     }
     return $size;
@@ -1389,8 +1520,10 @@ function sb_clean_data() {
     return true;
 }
 
-function sb_component_editor($admin = false) { ?>
-    <div class="sb-editor">
+function sb_component_editor($admin = false) {
+    $enabled = [$admin || !sb_get_setting('disable-uploads'), !sb_get_setting('disable-voice-messages')];
+    ?>
+    <div class="sb-editor<?php echo !$enabled[0] || !$enabled[1] ? ' sb-disabled-' . (!$enabled[0] && !$enabled[1] ? '2' : '1') : '' ?>">
         <?php
         if ($admin) {
             echo '<div class="sb-labels"></div>';
@@ -1401,31 +1534,23 @@ function sb_component_editor($admin = false) { ?>
         </div>
         <div class="sb-attachments"></div>
         <?php
-        if ($admin) {
-            echo '<div class="sb-suggestions"></div>';
+        $code = ($admin ? '<div class="sb-suggestions"></div>' : '') . '<div class="sb-bar"><div class="sb-bar-icons">';
+        if ($enabled[0]) {
+            $code .= '<div class="sb-btn-attachment" data-sb-tooltip="' . sb_('Attach a file') . '"></div>';
         }
+        $code .= '<div class="sb-btn-saved-replies" data-sb-tooltip="' . sb_('Add a saved reply') . '"></div>';
+        if ($enabled[1]) {
+            $code .= '<div class="sb-btn-audio-clip" data-sb-tooltip="' . sb_('Voice message') . '"></div>';
+        }
+        $code .= '<div class="sb-btn-emoji" data-sb-tooltip="' . sb_('Add an emoji') . '"></div>';
+        if ($admin && defined('SB_DIALOGFLOW') && sb_get_multi_setting('open-ai', 'open-ai-rewrite')) {
+            $code .= '<div class="sb-btn-open-ai sb-icon-openai sb-btn-open-ai-editor" data-sb-tooltip="' . sb_('Rewrite') . '"></div>';
+        }
+        if ($admin && defined('SB_WOOCOMMERCE')) {
+            $code .= '<div class="sb-btn-woocommerce" data-sb-tooltip="' . sb_('Add a product') . '"></div>';
+        }
+        echo $code . '</div><div class="sb-icon-send sb-submit" data-sb-tooltip="' . sb_('Send message') . '"></div><img class="sb-loader" src="' . SB_URL . '/media/loader.svg" alt="" /></div>';
         ?>
-        <div class="sb-bar">
-            <div class="sb-bar-icons">
-                <?php
-                if ($admin || !sb_get_setting('disable-uploads')) {
-                    echo '<div class="sb-btn-attachment" data-sb-tooltip="' . sb_('Attach a file') . '"></div>';
-                }
-                ?>
-                <div class="sb-btn-saved-replies" data-sb-tooltip="<?php sb_e('Add a saved reply') ?>"></div>
-                <div class="sb-btn-emoji" data-sb-tooltip="<?php sb_e('Add an emoji') ?>"></div>
-                <?php
-                if ($admin && defined('SB_DIALOGFLOW') && sb_get_multi_setting('open-ai', 'open-ai-rewrite')) {
-                    echo '<div class="sb-btn-open-ai sb-icon-openai sb-btn-open-ai-editor" data-sb-tooltip="' . sb_('Rewrite') . '"></div>';
-                }
-                if ($admin && defined('SB_WOOCOMMERCE')) {
-                    echo '<div class="sb-btn-woocommerce" data-sb-tooltip="' . sb_('Add a product') . '"></div>';
-                }
-                ?>
-            </div>
-            <div class="sb-icon-send sb-submit" data-sb-tooltip="<?php sb_e('Send message') ?>"></div>
-            <img class="sb-loader" src="<?php echo SB_URL ?>/media/loader.svg" alt="" />
-        </div>
         <div class="sb-popup sb-emoji">
             <div class="sb-header">
                 <div class="sb-select">
@@ -1495,6 +1620,14 @@ function sb_component_editor($admin = false) { ?>
         <form class="sb-upload-form-editor" action="#" method="post" enctype="multipart/form-data">
             <input type="file" name="files[]" class="sb-upload-files" multiple />
         </form>
+        <div id="sb-audio-clip">
+            <div class="sb-icon sb-icon-close"></div>
+            <div class="sb-audio-clip-cnt">
+                <div class="sb-audio-clip-time"></div>
+                <div class="sb-icon sb-icon-play sb-btn-clip-player"></div>
+            </div>
+            <div class="sb-icon sb-icon-pause sb-btn-mic"></div>
+        </div>
     </div>
     <?php
     if (!$admin) {
@@ -1512,12 +1645,14 @@ function sb_mb_strpos_reverse($string, $search, $offset) {
 }
 
 function sb_verification_cookie($code, $domain) {
-    if ($code == 'auto')
+    if ($code == 'auto') {
         $code = sb_get_setting('en' . 'vato-purc' . 'hase-code');
-    if (empty($code))
+    }
+    if (empty($code)) {
         return [false, ''];
-    $response = sb_get('https://board.support/synch/verification.php?verification&code=' . $code . '&domain=' . $domain);
-    if ($response == 'verification-success') {
+    }
+    $response = sb_get('https://bo' . 'ard.supp' . 'ort/syn' . 'ch/verifi' . 'cation.php' . '?ve' . 'rification&code=' . $code . '&domain=' . $domain);
+    if ($response == 'verifi' . 'cation-success') {
         return [true, password_hash('VGCKME' . 'NS', PASSWORD_DEFAULT)];
     }
     return [false, sb_string_slug($response, 'string')];
@@ -1525,7 +1660,6 @@ function sb_verification_cookie($code, $domain) {
 
 function sb_on_close() {
     sb_set_agent_active_conversation(0);
-    sb_reports_update('offline');
 }
 
 function sb_chatbot_active($check_dialogflow = true, $check_open_ai = true) {
@@ -1551,22 +1685,30 @@ function sb_logs($string, $user = false) {
 }
 
 function sb_webhooks($function_name, $parameters) {
-    $names = ['SBSMSSent' => 'sms-sent', 'SBLoginForm' => 'login', 'SBRegistrationForm' => 'registration', 'SBUserDeleted' => 'user-deleted', 'SBMessageSent' => 'message-sent', 'SBBotMessage' => 'bot-message', 'SBEmailSent' => 'email-sent', 'SBNewMessagesReceived' => 'new-message', 'SBNewConversationReceived' => 'new-conversation', 'SBNewConversationCreated' => 'new-conversation-created', 'SBActiveConversationStatusUpdated' => 'conversation-status-updated', 'SBSlackMessageSent' => 'slack-message-sent', 'SBMessageDeleted' => 'message-deleted', 'SBRichMessageSubmit' => 'rich-message', 'SBNewEmailAddress' => 'new-email-address'];
+    $names = ['SBSMSSent' => 'sms-sent', 'SBLoginForm' => 'login', 'SBRegistrationForm' => 'registration', 'SBUserDeleted' => 'user-deleted', 'SBMessageSent' => 'message-sent', 'SBDialogflowMessage' => 'dialogflow-message', 'SBBotMessage' => 'bot-message', 'SBEmailSent' => 'email-sent', 'SBNewMessagesReceived' => 'new-messages', 'SBNewConversationReceived' => 'new-conversation', 'SBNewConversationCreated' => 'new-conversation-created', 'SBActiveConversationStatusUpdated' => 'conversation-status-updated', 'SBSlackMessageSent' => 'slack-message-sent', 'SBMessageDeleted' => 'message-deleted', 'SBRichMessageSubmit' => 'rich-message', 'SBNewEmailAddress' => 'new-email-address'];
     $webhook_name = sb_isset($names, $function_name);
     if ($webhook_name) {
         $webhooks = sb_get_setting('webhooks');
-        if ($webhooks && $webhooks['webhooks-url'] && $webhooks['webhooks-active']) {
+        $webhook_url = sb_isset($webhooks, 'webhooks-url');
+        if ($webhooks && $webhook_url && $webhooks['webhooks-active']) {
             $allowed_webhooks = $webhooks['webhooks-allowed'];
             if ($allowed_webhooks && $allowed_webhooks !== true) {
                 $allowed_webhooks = explode(',', str_replace(' ', '', $allowed_webhooks));
-                if (!in_array($webhook_name, $allowed_webhooks))
+                if (!in_array($webhook_name, $allowed_webhooks)) {
                     return false;
+                }
             }
-            $query = json_encode(['function' => $webhook_name, 'key' => $webhooks['webhooks-key'], 'data' => $parameters, 'sender-url' => (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '')]);
+            $query = json_encode(['function' => $webhook_name, 'key' => $webhooks['webhooks-key'], 'data' => $parameters, 'sender-url' => (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '')], JSON_INVALID_UTF8_IGNORE | JSON_UNESCAPED_UNICODE);
             if ($query) {
-                return sb_curl($webhooks['webhooks-url'], $query, ['Content-Type: application/json', 'Content-Length: ' . strlen($query)]);
+                if (sb_is_cloud() && $webhook_url == 'zapier') {
+                    $webhook_url = sb_isset(sb_get_external_setting('zapier', []), $function_name);
+                    if (!$webhook_url) {
+                        return false;
+                    }
+                }
+                return sb_curl($webhook_url, $query, ['Content-Type: application/json', 'Content-Length: ' . strlen($query)]);
             } else {
-                return sb_error('webhook-json-error');
+                return sb_error('webhook-json-error', 'sb_webhooks', $function_name);
             }
         } else {
             return new SBValidationError('webhook-not-active-or-empty-url');
@@ -1616,6 +1758,9 @@ function sb_cron_jobs() {
     if (defined('SB_AECOMMERCE')) {
         sb_aecommerce_clean_carts();
     }
+    if (sb_chatbot_active(false, true)) {
+        sb_open_ai_embeddings_conversations();
+    }
     sb_clean_data();
     sb_db_query('DELETE FROM sb_settings WHERE name="cron-functions"');
     sb_save_external_setting('cron', $now);
@@ -1624,6 +1769,10 @@ function sb_cron_jobs() {
 function sb_sanatize_string($value) {
     $value = str_ireplace(['<script', '</script'], ['&lt;script', '&lt;/script'], $value);
     return str_ireplace(['onload', 'javascript:', 'onclick', 'onerror', 'onmouseover', 'oncontextmenu', 'ondblclick', 'onmousedown', 'onmouseenter', 'onmouseleave', 'onmousemove', 'onmouseout', 'onmouseup', 'ontoggle'], '', $value);
+}
+
+function sb_sanatize_file_name($value) {
+    return htmlspecialchars(str_ireplace(['\\', '/', ':', '?', '"', '*', '<', '>', '|'], '', sb_sanatize_string($value)), ENT_NOQUOTES | ENT_SUBSTITUTE, 'utf-8');
 }
 
 function sb_aws_s3($file_path, $action = 'PUT') {
@@ -1636,6 +1785,7 @@ function sb_aws_s3($file_path, $action = 'PUT') {
         $put = $action == 'PUT';
         $host_name = $settings['amazon-s3-bucket-name'] . '.s3.amazonaws.com';
         $file = '';
+        $timeout = false;
         if ($put) {
             $file_size = strlen($file);
             while ((!$file_size || $file_size < filesize($file_path)) && $recursion < 10) {
@@ -1646,6 +1796,8 @@ function sb_aws_s3($file_path, $action = 'PUT') {
                 }
                 $recursion++;
             }
+            $timeout = intval(filesize($file_path) / 1000000);
+            $timeout = $timeout < 7 ? 7 : ($timeout > 300 ? 300 : $timeout);
         }
         $file_name = basename($file_path);
         $timestamp = gmdate('Ymd\THis\Z');
@@ -1676,7 +1828,7 @@ function sb_aws_s3($file_path, $action = 'PUT') {
             $curl_headers[] = $key . ": " . $value;
         }
         $url = 'https://' . $host_name . '/' . $file_name;
-        $response = sb_curl($url, $file, $curl_headers, $action);
+        $response = sb_curl($url, $file, $curl_headers, $action, $timeout);
         return $response ? $response : $url;
     }
     return false;
@@ -1688,12 +1840,17 @@ function sb_get_timestamp($date_string) {
 }
 
 function sb_error($error_code, $function_name, $message = '', $force = false) {
-    $message = 'Support Board [' . $function_name . ']: ' . (is_string($message) ? $message : json_encode($message));
-    if ($force || sb_isset($_GET, 'debug') || sb_isset($_POST, 'debug') || strpos(sb_isset($_SERVER, 'HTTP_REFERER'), 'debug')) {
+    $message = 'Support Board [' . $function_name . '][' . $error_code . ']: ' . (is_string($message) ? $message : json_encode($message));
+    if ($force || sb_is_debug()) {
         sb_debug($message);
         trigger_error($message);
+        die($message);
     }
     return new SBError($error_code, $function_name, $message);
+}
+
+function sb_is_debug() {
+    return isset($_GET['debug']) || sb_isset($_POST, 'debug') || strpos(sb_isset($_SERVER, 'HTTP_REFERER'), 'debug');
 }
 
 /*
@@ -1730,7 +1887,7 @@ function sb_reports($report_name, $date_start = false, $date_end = false, $timez
         $date .= ($date ? ' AND ' : '') . 'A.creation_time <= "' . sb_db_escape($date_end) . ' 23:59"';
     }
 
-    // Get the data
+    // Get the sb_pa
     switch ($report_name) {
         case 'conversations':
             $query = 'SELECT A.creation_time FROM sb_conversations A, sb_users B WHERE B.id = A.user_id AND B.user_type <> "visitor"';
@@ -1771,49 +1928,6 @@ function sb_reports($report_name, $date_start = false, $date_end = false, $timez
             $time_range = false;
             $chart_type = 'bar';
             $label_type = 2;
-            break;
-        case 'agents-availability':
-            $title = 'Agent availability';
-            $description = 'The average duration of an agent\'s online presence per day.';
-            $table = [sb_('Agent name'), sb_('Average time')];
-            $time_range = false;
-            $label_type = 2;
-            $rows = sb_db_get('SELECT B.id, B.first_name, B.last_name, B.department, A.value, A.creation_time FROM sb_reports A, sb_users B WHERE A.external_id = B.id AND B.id' . ($date ? ' AND ' . $date : '') . ' ORDER BY B.id', false);
-            $current_rows = [];
-            $seconds = 0;
-            $days = 0;
-            $count = count($rows);
-            $current_agent_id = $count ? $rows[0]['id'] : 0;
-            $utc_offset = 0;
-            if ($timezone) {
-                date_default_timezone_set($timezone);
-                $utc_offset = date('Z');
-            }
-            for ($i = 0; $i < $count; $i++) {
-                $row = $rows[$i];
-                if ($seconds && (($i && $current_agent_id != $row['id']) || ($count > 1 && $count == $i + 1))) {
-                    $seconds = intval($seconds / $days / 60);
-                    $data[sb_get_user_name($rows[$i - 1])] = [$seconds, $current_rows, gmdate('H:i:s', $seconds)];
-                    $seconds = 0;
-                    $days = 0;
-                    $current_rows = [];
-                    $current_agent_id = $row['id'];
-                } else {
-                    $intervals = explode(' ', $row['value']);
-                    $intervals_string = '';
-                    for ($j = 0; $j < count($intervals); $j++) {
-                        if (strpos($intervals[$j], '-')) {
-                            $interval = explode('-', $intervals[$j]);
-                            if ($interval[1] && is_numeric($interval[0]) && strlen($interval[1]) < 12) {
-                                $seconds += intval($interval[1]) - intval($interval[0]);
-                                $intervals_string .= gmdate('H:i:s', intval($interval[0]) + $utc_offset) . ' ' . sb_('To') . ' ' . gmdate('H:i:s', intval($interval[1]) + $utc_offset) . ', ';
-                            }
-                        }
-                    }
-                    $current_rows[$row['creation_time']] = $intervals_string ? substr($intervals_string, 0, -2) : '';
-                    $days++;
-                }
-            }
             break;
         case 'agents-conversations':
             $title = 'Agent conversations count';
@@ -1996,7 +2110,7 @@ function sb_reports($report_name, $date_start = false, $date_end = false, $timez
                                 $count++;
                             }
                         }
-                        $data[$time] = [intval($sum / $count), gmdate('H:i:s', $sum / $count)];
+                        $data[$time] = [intval($sum / $count), gmdate('H:i:s', intval($sum / $count))];
                     }
                 }
             }
@@ -2048,7 +2162,7 @@ function sb_reports($report_name, $date_start = false, $date_end = false, $timez
                 for ($i = 0; $i < $count; $i++) {
                     $sum += $times[$i];
                 }
-                $data[$agent_names[$key]] = [intval($sum / $count), gmdate('H:i:s', $sum / $count)];
+                $data[$agent_names[$key]] = [intval($sum / $count), gmdate('H:i:s', intval($sum / $count))];
             }
             break;
         case 'articles-ratings':
@@ -2258,7 +2372,7 @@ function sb_reports($report_name, $date_start = false, $date_end = false, $timez
     }
 
     // Return the data
-    return ['title' => sb_($title), 'description' => sb_($description), 'data' => $data_final, 'table' => $table, 'table-inverse' => $time_range, 'label_type' => $label_type, 'chart_type' => $chart_type];
+    return ['title' => sb_($title), 'description' => sb_($description), 'data' => $data_final, 'table' => $table, 'table_inverse' => $time_range, 'label_type' => $label_type, 'chart_type' => $chart_type];
 }
 
 function sb_reports_update($name, $value = false, $external_id = false, $extra = false) {
@@ -2278,20 +2392,6 @@ function sb_reports_update($name, $value = false, $external_id = false, $extra =
             $where = ' WHERE name = "articles-views" AND extra = "' . $extra . '" AND creation_time = "' . $now . '"';
             $count = sb_db_get('SELECT value FROM sb_reports' . $where . ' LIMIT 1');
             return sb_db_query(empty($count) ? 'INSERT INTO sb_reports (name, value, creation_time, external_id, extra) VALUES ("' . $name . '", 1, "' . $now . '", NULL, "' . $extra . '")' : 'UPDATE sb_reports SET value = ' . (intval($count['value']) + 1) . $where);
-        case 'online':
-        case 'offline':
-            if (!sb_get_active_user()) {
-                return false;
-            }
-            $is_online = $name == 'online';
-            $where = ' WHERE name = "availability" AND external_id = "' . sb_get_active_user_ID() . '" AND creation_time = "' . $now . '"';
-            $value_db = sb_isset(sb_db_get('SELECT value FROM sb_reports' . $where . ' LIMIT 1'), 'value');
-            $last_char = substr($value_db, -1);
-            if (($last_char == '-' && $is_online) || (!$value_db && !$is_online)) {
-                return false;
-            }
-            $value = time() . ($is_online ? '-' : '');
-            return sb_db_query(empty($value_db) ? 'INSERT INTO sb_reports (name, value, creation_time, external_id, extra) VALUES ("availability", "' . sb_db_escape($value) . '", "' . $now . '", ' . sb_get_active_user_ID() . ', NULL)' : 'UPDATE sb_reports SET value = "' . sb_db_escape($value_db) . ($is_online || ($last_char && $last_char != '-') ? ' ' : '') . $value . '"' . $where);
         default:
             $where = ' WHERE name = "' . $name . '" AND creation_time = "' . $now . '"';
             $count = sb_db_get('SELECT value FROM sb_reports' . $where . ' LIMIT 1');
@@ -2474,8 +2574,9 @@ function sb_automations_validate($automation) {
                                         $letter_value_unix_end -= date('L', $unix_end);
                                     }
                                     $valid = ($letter_value_now >= $letter_value_unix) && (date($letter, strtotime('+' . ($letter_value_unix_end - $letter_value_unix - (($letter_value_now >= $letter_value_unix) && ($letter_value_now <= $letter_value_unix_end) ? $letter_value_now - $letter_value_unix : 0)) . ' days')) <= $letter_value_unix_end);
-                                    if ($valid && $hhmm)
+                                    if ($valid && $hhmm) {
                                         $valid = ($now >= $hhmm) && ($now <= $hhmm_end);
+                                    }
                                     $repeat_id = $valid ? $letter_value_now : false;
                                 }
                             } else if ($criteria == 'is-exactly') {
@@ -2548,9 +2649,9 @@ function sb_automations_validate($automation) {
                             }
                             if ($user_value) {
                                 $countries = json_decode(file_get_contents(SB_PATH . '/resources/json/countries.json'), true);
-                                if (isset($countries[$user_value]))
+                                if (isset($countries[$user_value])) {
                                     $user_value = $countries[$user_value];
-                                else if (strlen($user_value) > 2) {
+                                } else if (strlen($user_value) > 2) {
                                     $user_value = substr($user_value, 0, 2);
                                 }
                             }
@@ -2683,6 +2784,8 @@ function sb_automations_is_sent($user_id, $automation, $repeat_id = false) {
  * 7. Add or delete agent
  * 8. Set and return cloud login data
  * 9. Check if cloud version
+ * 10. Check the the user has credits
+ * 11. Reset the login data and reload
  *
  */
 
@@ -2702,8 +2805,23 @@ function sb_cloud_account() {
     return json_decode(sb_encryption(isset($_POST['cloud']) ? $_POST['cloud'] : sb_isset($_GET, 'cloud'), false), true);
 }
 
+function sb_cloud_account_id() {
+    global $ACTIVE_ACCOUNT;
+    global $ACTIVE_ACCOUNT_ID;
+    if ($ACTIVE_ACCOUNT_ID) {
+        return $ACTIVE_ACCOUNT_ID;
+    }
+    if ($ACTIVE_ACCOUNT) {
+        $ACTIVE_ACCOUNT_ID = $ACTIVE_ACCOUNT['user_id'];
+        return $ACTIVE_ACCOUNT_ID;
+    }
+    require_once(SB_CLOUD_PATH . '/account/functions.php');
+    $ACTIVE_ACCOUNT_ID = get_active_account_id();
+    return $ACTIVE_ACCOUNT_ID;
+}
+
 function sb_cloud_ajax_function_forbidden($function_name) {
-    return in_array($function_name, ['installation', 'get-versions', 'update', 'app-activation', 'app-get-key', 'system-requirements', 'path']);
+    return in_array($function_name, ['installation', 'upload-path', 'get-versions', 'update', 'app-activation', 'app-get-key', 'system-requirements', 'path']);
 }
 
 function sb_cloud_load() {
@@ -2732,7 +2850,7 @@ function sb_cloud_load_by_url() {
                 require_once($path);
                 sb_cloud_set_login($token);
             } else {
-                die('Path not found [function sb_cloud_load_by_url]: ' . $path);
+                sb_error('config-file-not-found', 'sb_cloud_load_by_url', 'Config file not found: ' . $path, true);
             }
             return $token;
         }
@@ -2746,23 +2864,26 @@ function sb_cloud_css_js() {
 }
 
 function sb_cloud_set_agent($email, $action = 'add', $extra = false) {
-    require_once(SB_CLOUD_PATH . '/account/functions.php');
-    $cloud = sb_cloud_account();
-    if ($action == 'add') {
-        return db_query('INSERT INTO agents(admin_id, email) VALUE ("' . $cloud['user_id'] . '", "' . $email . '")');
-    }
-    if ($action == 'update') {
-        return db_query('UPDATE agents SET email = "' . $extra . '" WHERE email = "' . $email . '"');
-    }
-    if ($action == 'delete') {
-        return db_query('DELETE FROM agents WHERE email = "' . $email . '"');
+    if ($email) {
+        require_once(SB_CLOUD_PATH . '/account/functions.php');
+        $cloud = sb_cloud_account();
+        membership_delete_cache($cloud['user_id']);
+        if ($action == 'add') {
+            return db_query('INSERT INTO agents(admin_id, email) VALUE ("' . $cloud['user_id'] . '", "' . $email . '")');
+        }
+        if ($action == 'update') {
+            return db_query('UPDATE agents SET email = "' . $extra . '" WHERE email = "' . $email . '"');
+        }
+        if ($action == 'delete') {
+            return db_query('DELETE FROM agents WHERE email = "' . $email . '"');
+        }
     }
     return false;
 }
 
 function sb_cloud_set_login($token) {
     require_once(SB_CLOUD_PATH . '/account/functions.php');
-    $cloud_user = db_get('SELECT id AS `user_id`, first_name, last_name, email, password, token, stripe_customer_id FROM users WHERE token = "' . $token . '" LIMIT 1');
+    $cloud_user = db_get('SELECT id AS `user_id`, first_name, last_name, email, password, token, customer_id FROM users WHERE token = "' . $token . '" LIMIT 1');
     if ($cloud_user) {
         $cloud_user = sb_encryption(json_encode($cloud_user));
         $_POST['cloud'] = $cloud_user;
@@ -2773,6 +2894,34 @@ function sb_cloud_set_login($token) {
 
 function sb_is_cloud() {
     return defined('SB_CLOUD');
+}
+
+function sb_cloud_membership_has_credits($source = false, $notification = true) {
+    if (sb_is_cloud() && (!$source || !sb_ai_is_manual_sync($source))) {
+        require_once(SB_CLOUD_PATH . '/account/functions.php');
+        $user_id = db_escape(account()['user_id'], true);
+        $user_info = db_get('SELECT credits, email FROM users WHERE id = ' . $user_id);
+        $credits = sb_isset($user_info, 'credits', 0);
+        $continue = $credits < 1 && super_get_user_data('auto_recharge', $user_id) ? membership_auto_recharge() : true;
+        if ($continue === true && $credits <= 0 && $notification && cloud_suspended_notifications_counter($user_id, false, true) < 2) {
+            $email = [super_get_setting('email_subject_no_credits'), super_get_setting('email_template_no_credits')];
+            send_email(sb_isset($user_info, 'email'), $email[0], $email[1]);
+            cloud_suspended_notifications_counter($user_id, true, true);
+        }
+        return $credits > 0;
+    }
+    return true;
+}
+
+function sb_cloud_membership_use_credits($spending_source, $source, $extra = false) {
+    if (sb_is_cloud() && !sb_ai_is_manual_sync($source)) {
+        require_once(SB_CLOUD_PATH . '/account/functions.php');
+        membership_use_credits($spending_source, $extra);
+    }
+}
+
+function sb_cloud_reset_login() {
+    die('<script>document.cookie="sb-login=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/";document.cookie="sb-cloud=;expires=Thu, 01 Jan 1970 00:00:01 GMT;path=/";document.location="' . CLOUD_URL . '/account?login";</script>');
 }
 
 ?>

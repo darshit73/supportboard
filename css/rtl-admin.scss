@@ -5,7 +5,7 @@
 * RTL-ADMIN.SCSS
 * ==========================================================
 *
-* Back-end RTL css. This file is imported only.
+* Back-end RTL CSS. This file is imported only.
 *
 */
 
@@ -22,11 +22,30 @@
     &.sb-admin {
         padding-left: 0;
         padding-right: 65px;
+
+        > main > div {
+            > .sb-tab > .sb-nav > ul {
+                padding-left: 0;
+                padding-right: 20px;
+            }
+
+            > .sb-top-bar > div:last-child {
+                .sb-btn-icon + .sb-btn, .sb-btn + .sb-btn-icon, .sb-btn + .sb-btn {
+                    margin-left: 0;
+                    margin-right: 15px;
+                }
+            }
+        }
     }
 
     .sb-table-users th.sb-active:after {
         left: 15px;
         right: auto;
+    }
+
+    > .sb-header {
+        border-right: none;
+        border-left: 1px solid #d4d4d4;
     }
 
     > .sb-header, > .sb-header > .sb-admin-nav-right {
@@ -87,12 +106,17 @@
         }
     }
 
-    .sb-filter-btn.sb-active > i {
-        left: 15px;
+    .sb-filter-btn {
+        &.sb-active > i {
+            left: 15px;
+        }
+
+        .sb-select:first-child {
+            margin-right: 30px;
+        }
     }
 
-    div ul.sb-menu li,
-    .sb-select ul li {
+    div ul.sb-menu li, .sb-select ul li {
         padding: 6px 12px 6px 25px;
     }
 
@@ -330,8 +354,6 @@
         }
     }
 
-
-
     .sb-lightbox .sb-top-bar {
         a + a {
             margin-left: 0;
@@ -373,27 +395,36 @@
 
             .sb-profile {
                 .sb-name {
-                    margin-right: 0;
-                    margin-left: 70px;
                     padding-right: 0;
-                    padding-left: 15px;
+                    padding-left: 10px;
                 }
 
                 .sb-time {
-                    left: 0;
-                    right: auto;
+                    margin-right: auto;
+                    margin-left: 0;
                 }
             }
 
             > span {
                 right: auto;
-                left: 15px;
+                left: 10px;
             }
 
-            &.sb-active {
-                border-right-color: #028be5;
+            &:before {
+                left: auto;
+                right: 0;
             }
         }
+
+        .sb-top > .sb-select > p span {
+            padding-left: 0;
+            padding-right: 5px;
+        }
+    }
+
+    .sb-tags-area {
+        padding-right: 0;
+        padding-left: 10px;
     }
 
     .sb-menu-mobile {
@@ -543,10 +574,6 @@
         }
     }
 
-    .sb-menu-wide ul li, .sb-tab > .sb-nav > ul li {
-        margin: 0 0 0 30px;
-    }
-
     > main > div > .sb-top-bar {
         > div h2 {
             margin-right: 0;
@@ -637,6 +664,22 @@
         }
     }
 
+    .sb-setting, .sb-input-setting {
+        .repeater-item > div label {
+            margin-right: 0;
+            margin-left: 15px;
+        }
+
+        [data-type="upload-file"] .sb-btn {
+            margin-left: 0;
+            margin-right: 5px;
+        }
+
+        .sb-icon-help {
+            margin: 0 5px 0 0;
+        }
+    }
+
     .sb-type-multi-input > .input > div:not(.multi-input-textarea) > label {
         margin: 0 0 0 15px;
     }
@@ -698,36 +741,27 @@
         }
     }
 
-    .sb-articles-area {
-        .sb-new-category-cnt {
-            padding: 0 0 0 30px;
-        }
-    }
+    .sb-inner-tab .sb-nav > ul li {
+        padding-right: 0;
+        padding-left: 60px;
+        margin-left: 0;
 
-    .sb-inner-tab {
-        .sb-nav > ul li {
-            padding-right: 0;
-            padding-left: 30px;
-        }
-
-        .sb-nav > ul li i {
+        i {
             right: auto;
             left: 0;
         }
 
-        .sb-nav > ul li span {
+        span {
             right: auto;
             left: 32px;
         }
     }
 
-    .sb-translations {
-        .sb-nav li {
-            padding-left: 0;
-            padding-right: 30px;
-        }
+    .sb-translations .sb-nav li {
+        padding-left: 0;
+        padding-right: 30px;
 
-        .sb-nav li img {
+        img {
             left: auto;
             right: 0;
         }
@@ -806,6 +840,61 @@
             transform: rotate(180deg);
         }
     }
+
+    .sb-user-details .sb-profile {
+        margin-left: 0;
+        margin-right: 10px;
+    }
+
+    .sb-search-dropdown {
+        .sb-search-btn {
+            margin-left: 30px !important;
+            margin-right: auto !important;
+
+            &.sb-active i {
+                top: 12px;
+            }
+        }
+
+        .sb-search-dropdown-items {
+            left: 30px;
+            right: -1px
+        }
+    }
+
+    #tags {
+        .repeater-item div + div {
+            right: auto;
+            left: 0;
+        }
+
+        [data-id="tag-name"] {
+            margin-left: 50px;
+            margin-right: auto;
+        }
+    }
+
+    .sb-area-articles {
+        .sb-add-article, .sb-add-category {
+            margin-left: 0 !important;
+            margin-right: 20px !important;
+        }
+    }
+
+    .codex-editor.codex-editor--rtl .ce-toolbar__actions {
+        right: -60px;
+        left: auto;
+    }
+
+    .ce-toolbar__actions {
+        padding-right: 0;
+        padding-left: 15px;
+    }
+
+    .ce-popover__item-icon {
+        margin-left: 10px;
+        margin-right: 0;
+    }
 }
 
 @media (min-width: 465px) and (max-width: 912px) {
@@ -835,6 +924,11 @@
 
 @media (max-width: 464px) {
     .sb-rtl {
+
+        .sb-menu-wide > ul li, .sb-nav > ul li {
+            padding: 10px 15px 10px 25px;
+        }
+
         .sb-menu-mobile {
             right: auto !important;
             left: 0 !important;
@@ -849,16 +943,9 @@
             padding: 0 15px 0 20px;
         }
 
-        .sb-area-settings {
-            .sb-save-changes {
-                margin-right: 0;
-                margin-left: 4px;
-            }
-
-            > .sb-tab > .sb-nav > ul {
-                padding-right: 0;
-                margin: 0;
-            }
+        .sb-area-settings > .sb-tab > .sb-nav > ul {
+            padding-right: 0 !important;
+            margin: 0;
         }
 
         .sb-area-settings > .sb-tab > .sb-nav, .sb-area-reports > .sb-tab > .sb-nav {
@@ -870,9 +957,21 @@
             left: 5px;
         }
 
-        .sb-board > .sb-admin-list .sb-scroll-area li > div, .sb-board > .sb-admin-list .sb-scroll-area li p {
-            padding-left: 0;
-            padding-right: 65px;
+        .sb-board > .sb-admin-list .sb-scroll-area li {
+            > div, p {
+                padding-left: 0;
+                padding-right: 65px;
+            }
+
+            .sb-notification-counter {
+                right: auto;
+                left: 14px;
+
+                & + div + p {
+                    margin-right: 0;
+                    margin-left: 30px;
+                }
+            }
         }
 
         .sb-board .sb-conversation .sb-top .sb-btn-back:before {
@@ -914,9 +1013,24 @@
             margin-right: 15px;
         }
 
-        .sb-top-bar .sb-menu-mobile {
-            left: 5px !important;
-            right: auto !important;
+        .sb-top-bar {
+            .sb-menu-mobile {
+                left: 5px !important;
+                right: auto !important;
+            }
+
+            .sb-btn.sb-icon {
+                margin-right: 0;
+                margin-left: 5px !important;
+            }
+        }
+
+        &.sb-admin > main > div > .sb-tab > .sb-nav > ul {
+            padding-right: 15px;
+        }
+
+        .sb-area-articles .sb-add-article, .sb-rtl .sb-area-articles .sb-add-category {
+            margin-right: 15px !important;
         }
 
         .sb-area-users {
@@ -950,7 +1064,7 @@
             left: 0;
         }
 
-        .sb-menu-wide > div, .sb-nav > div {
+        .sb-menu-wide > div:not(.sb-btn), .sb-nav > div:not(.sb-btn) {
             padding-right: 0;
             padding-left: 20px;
         }
